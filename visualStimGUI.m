@@ -1,4 +1,4 @@
-function []=visualStimToolbox(varargin)
+function []=visualStimGUI(varargin)
 %% Default params
 batchmode = 0;
 simulationModel=false;
@@ -40,20 +40,22 @@ else
 end
 if installGUILayoutToolBox
     disp('GUI Layout toolbox is not installed, trying to install...');
-    d=which('GUI Layout Toolbox 2.3.4.mltbx');
+    d=which('GUI Layout Toolbox 2.3.5.mltbx');
     installedToolbox = matlab.addons.toolbox.installToolbox(d,true);
 end
 
 %% %%%%%%%%%%%%%%%% Parameter definitions  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 VS.hand.hMainFigure=figure; %initialize GUI figure
-VS.par.NSKToolBoxMainDir=fileparts(which('identifierOfMainDir4NSKToolBox'));
+
 VS.par.dirSep=filesep; %choose file/dir separator according to platform
 
 %collect all visual stimulation patterns
-VS.par.VSDirectory=fileparts(which('visualStimToolbox.m'));
+VS.par.VSDirectory=fileparts(which('visualStimGUI.m'));
 VS.par.VSObjDir=[VS.par.VSDirectory VS.par.dirSep 'VStim'];
-VS.par.PCspecificFilesDir=[VS.par.NSKToolBoxMainDir VS.par.dirSep 'PCspecificFiles'];
-
+VS.par.PCspecificFilesDir=[VS.par.VSDirectory VS.par.dirSep 'PCspecificFiles'];
+if ~isfolder([VS.par.VSDirectory VS.par.dirSep 'stats'])
+    mkdir([VS.par.VSDirectory VS.par.dirSep 'stats'])
+end
 % Script to get stim files from within subdirectories
 dirinfo = dir([VS.par.VSObjDir VS.par.dirSep]);
 dirinfo(~[dirinfo.isdir]) = [];  %remove non-directories
@@ -99,8 +101,8 @@ VS.par.currentGUIScreen=2; %the default monitor to display GUI
 VS.par.currentPTBScreen=1; %the default monitor to display the visual stimulation
 
 %check configuration file for PC specific values
-NSKToolBoxMainDir=fileparts(which('identifierOfMainDir4NSKToolBox'));
-configFile=[NSKToolBoxMainDir filesep 'PCspecificFiles' filesep 'GUIConfig.txt']; %JSON encoded
+visualStimGUIDir=fileparts(which('identifierOfMainDir4NSKToolBox'));
+configFile=[visualStimGUIDir filesep 'PCspecificFiles' filesep 'GUIConfig.txt']; %JSON encoded
 if exist(configFile,'file')
     fid=fopen(configFile);
     configText=fscanf(fid,'%s');
@@ -115,6 +117,8 @@ end
 %initialize Psychophysics toolbox screens
 VS.par.PTB_win=[];
 initializeScreens(simulationModel);
+
+    %This functionality was added by Noah Levine-small 
     function hlist = reorderlist(hObj,event,hfig, buts,methods)
         
         ListBoxPanel = uix.ScrollingPanel('Parent',hfig);
@@ -212,7 +216,7 @@ initializeScreens(simulationModel);
         
     end
 
-% Create the main GUI of the visual stimulation toolbox
+% Create the main GUI of the visual stimulation GUI
 if batchmode == 0
     createVSGUI;
     % Switch to realtime:
@@ -534,7 +538,7 @@ end
         % Construct main GUI screen
         
         %% Open a window and add some menus
-        set(VS.hand.hMainFigure,'Position',VS.par.GUIPosition,'Name','Visual Stimulation Toolbox',...
+        set(VS.hand.hMainFigure,'Position',VS.par.GUIPosition,'Name','Visual Stimulation GUI',...
             'NumberTitle','off', 'MenuBar','none', 'Toolbar','none', 'HandleVisibility','off','CloseRequestFcn',@closeMainGUIFigure);
         
         % define zoom options
