@@ -102,7 +102,7 @@ VS.par.currentGUIScreen=2; %the default monitor to display GUI
 VS.par.currentPTBScreen=1; %the default monitor to display the visual stimulation
 
 %check configuration file for PC specific values
-visualStimGUIDir=fileparts(which('identifierOfMainDir4NSKToolBox'));
+visualStimGUIDir=fileparts(which('visualStimGUI.m'));
 configFile=[visualStimGUIDir filesep 'PCspecificFiles' filesep 'GUIConfig.txt']; %JSON encoded
 if exist(configFile,'file')
     fid=fopen(configFile);
@@ -112,16 +112,17 @@ if exist(configFile,'file')
     fn = fieldnames(configData);
     for i=1:numel(fn)
         fn2{i}=strrep(fn{i},'_','.');% converts '_' back to proper fied separators ('.')
-        eval([fn2{i} '=configData.(fn{i})' ]);
+        eval([fn2{i} '=configData.(fn{i});' ]);
     end
 end
 %initialize Psychophysics toolbox screens
 VS.par.PTB_win=[];
 initializeScreens(simulationModel);
+VS.hand.batchMode.hBatchFigure=[]; %initialize batch mode figure handle - important for later
 
-% Create the main GUI of the visual stimulation GUI
-createVSGUI;
-% Switch to realtime:
+createVSGUI; % Create the main GUI of the visual stimulation GUI
+
+% Switch to realtime
 priorityLevel=MaxPriority(VS.par.PTB_win);
 Priority(priorityLevel); %%priority is set back to regular after GUI closes
 %initialize current visual stimulation object
@@ -232,11 +233,36 @@ initializeVisualStim;
     end
 
     function CallbackRunBatchVSPush(hObj,event)
+        %calculate position of Batch GUI
+        VS.par.BatchGUIPosition=VS.par.GUIPosition;
+        VS.par.BatchGUIPosition(1)=VS.par.GUIPosition(1)+VS.par.GUIPosition(3)+10;
+        VS.par.BatchGUIPosition(3:4)=round(VS.par.BatchGUIPosition(3:4)*0.5);
+
+        %create batch figure
+        VS.hand.batchMode.hBatchFigure = figure;
+        set(VS.hand.batchMode.hBatchFigure,'Position',VS.par.BatchGUIPosition,'Name','order batch stimuli GUI',...
+            'NumberTitle','off', 'MenuBar','none', 'Toolbar','none', 'HandleVisibility','off');
+        VS.hand.batchMode.hScrollPanel = uix.ScrollingPanel('Parent',VS.hand.batchMode.hBatchFigure);
+        VS.hand.batchMode.hListBox = uix.VBox('Parent', VS.hand.batchMode.hScrollPanel, 'Padding', 5, 'Spacing', 5);
+        VS.hand.batchMode.hListButtonBox  = uix.VBox('Parent', VS.hand.batchMode.hListBox, 'Padding', 5, 'Spacing', 5);
+        set(VS.hand.batchMode.hListBox, 'units', 'norm', 'position', [0 0 0.75 1])
+        set(VS.hand.batchMode.hListButtonBox, 'units', 'norm', 'position', [0.8 0 1 1])
+
+        %VS.par.items = methods(arrayfun(@(x) buts{x}.Value == 1, 1:numel(buts)));
+        VS.hand.batchMode.hlist = uicontrol('Parent', VS.hand.batchMode.hListBox, 'style', 'listbox');
+        
+        VS.hand.batchMode.hLoadBatchStims = uicontrol('Parent',VS.hand.batchMode.hListButtonBox,'String','Load stims', 'Callback', @CallBackLoadBatchStims);
+        VS.hand.batchMode.hpromote = uicontrol('Parent', VS.hand.batchMode.hListButtonBox, 'String', '^', 'Callback', @(s,e)CallbackMoveitem(1));
+        VS.hand.batchMode.hdemote = uicontrol('Parent', VS.hand.batchMode.hListButtonBox, 'String', 'v', 'Callback', @(s,e)CallbackMoveitem(-1));
+        VS.hand.batchMode.hrunbatch = uicontrol('Parent',VS.hand.batchMode.hListButtonBox,'String','Run batch >', 'Callback', @CallbackRunBatch);
+    end
+
+    function CallBackLoadBatchStims(hObj,event)
         %load previously saved parameter file
         [FileName,PathName,FilterIndex] = uigetfile('*.mat','Choose saved visual stims',VS.par.savedStimFilesDir,'MultiSelect','on');
-        %go over all loaded stims and verify that  stimulation objects still exist and have the same properties 
-        for i=1:numel(FileName)
-            props=load([PathName FileName{i}]);
+        %go over all loaded stims and verify that  stimulation objects still exist and have the same properties
+        for ii=1:numel(FileName)
+            props=load([PathName FileName{ii}]);
             if any(strcmp(props.VS_class,VS.par.VSMethods))
                 fprintf('Stim %s found, checking properties...',props.VS_class);
                 props.ObjectPros=properties(props.VS_class);
@@ -251,62 +277,43 @@ initializeVisualStim;
                 errordlg({'This saved stimulation is from an older version','please save again for this version and reload'},'VS toolbox error')
             end
         end
-
-        VS.par.BatchGUIPosition=VS.par.GUIPosition;
-        VS.par.BatchGUIPosition(1)=VS.par.GUIPosition(1)+VS.par.GUIPosition(3)+10;
-        VS.par.BatchGUIPosition(3:4)=round(VS.par.BatchGUIPosition(3:4)*0.5);
-
-        VS.hand.batchMode.hBatchFigure = figure;
-        set(VS.hand.batchMode.hBatchFigure,'Position',VS.par.BatchGUIPosition,'Name','order batch stimuli GUI',...
-            'NumberTitle','off', 'MenuBar','none', 'Toolbar','none', 'HandleVisibility','off');
-
-        VS.hand.batchMode.hScrollPanel = uix.ScrollingPanel('Parent',VS.hand.batchMode.hBatchFigure);
-        VS.hand.batchMode.hListBox = uix.VBox('Parent', VS.hand.batchMode.hScrollPanel, 'Padding', 5, 'Spacing', 5);
-        VS.hand.batchMode.hListButtonBox  = uix.VBox('Parent', VS.hand.batchMode.hListBox, 'Padding', 5, 'Spacing', 5);
-        set(VS.hand.batchMode.hListBox, 'units', 'norm', 'position', [0 0 0.75 1])
-        set(VS.hand.batchMode.hListButtonBox, 'units', 'norm', 'position', [0.8 0 1 1])
-
-        %VS.par.items = methods(arrayfun(@(x) buts{x}.Value == 1, 1:numel(buts)));
-        VS.hand.batchMode.hlist = uicontrol('Parent', VS.hand.batchMode.hListBox, 'style', 'listbox', 'string', FileName);
-        
-        VS.hand.batchMode.hpromote = uicontrol('Parent', VS.hand.batchMode.hListButtonBox, 'String', '^');
-        VS.hand.batchMode.hdemote = uicontrol('Parent', VS.hand.batchMode.hListButtonBox, 'String', 'v');
-        VS.hand.batchMode.hrunbatch = uicontrol('Parent',VS.hand.batchMode.hListButtonBox,'String','Run batch >');
-        
-        % Set button callbacks
-        set(VS.hand.batchMode.hpromote, 'Callback', @(s,e)CallbackMoveitem(1))
-        set(VS.hand.batchMode.hdemote, 'Callback', @(s,e)CallbackMoveitem(-1))
-        set(VS.hand.batchMode.hrunbatch, 'Callback', @CallbackRunBatch);
-        
-        function CallbackMoveitem(increment)
-            % Get the existing items and the current item
-            items = get(hlist, 'string');
-            current = get(hlist, 'value');
-            
-            toswap = current - increment;
-            
-            % Ensure that we aren't already at the top/bottom
-            if toswap < 1 || toswap > numel(items)
-                return
-            end
-            
-            % Swap the two entries that need to be swapped
-            inds = [current, toswap];
-            items(inds) = flipud(items(inds));
-            
-            % Update the order and the selected item
-            set(hlist, 'string', items);
-            set(hlist, 'value', toswap)
-        end
-
-        function CallbackRunBatch(hObj,event)
-            for i=1:numel()
-            CallbackRunVSPush;
-        end
-        
-
+        set(VS.hand.batchMode.hlist,'string', FileName,'Tooltip',fullfile(PathName,FileName))
     end
 
+    function CallbackMoveitem(increment)
+        % Get the existing items and the current item
+        items = get(VS.hand.batchMode.hlist, 'string');
+        current = get(VS.hand.batchMode.hlist, 'value');
+        fullPath = get(VS.hand.batchMode.hlist, 'Tooltip');
+        toswap = current - increment;
+        
+        % Ensure that we aren't already at the top/bottom
+        if toswap < 1 || toswap > numel(items)
+            return
+        end
+        
+        % Swap the two entries that need to be swapped
+        inds = [current, toswap];
+        items(inds) = flipud(items(inds));
+        fullPath(inds) = flipud(fullPath(inds));
+        
+        % Update the order and the selected item
+        set(VS.hand.batchMode.hlist, 'string', items);
+        set(VS.hand.batchMode.hlist, 'value', toswap);
+        set(VS.hand.batchMode.hlist, 'Tooltip', fullPath);
+    end
+
+    function CallbackRunBatch(hObj,event)
+        VS.par.BatchStimList = get(VS.hand.batchMode.hlist, 'Tooltip');
+        for stm=1:numel(VS.par.BatchStimList)
+            VS.par.BatchStimProp{stm}=load(VS.par.BatchStimList{stm});
+            stimNumber=find(strcmp(VS.par.VSMethods,VS.par.BatchStimProp{stm}.VS_class));
+            CallbackChangeVisualStim(NaN,NaN,stimNumber);
+            CallbackFileMenuLoadParams(NaN,NaN,VS.par.BatchStimList{stm})
+            CallbackRunVSPush;
+        end
+    end
+    
     function CallbackRunVSPush(hObj,event)
         %prepare save file
         saveFile=get(VS.hand.GenealBox.hChangeDirEdit,'string');
@@ -333,7 +340,7 @@ initializeVisualStim;
         if get(VS.hand.GenealBox.hSaveStats,'value')
             save (saveFile,'VSMetaData');
             set(VS.hand.GenealBox.hChangeDirEdit,'string','Default dir'); %to prevent saving again on the same file name after running
-            disp('Stimulation parameters saved!');
+            fprintf('Stimulation parameters saved to %s\n!',saveFile);
         end
 
         %send mail
@@ -436,9 +443,12 @@ initializeVisualStim;
         initializeVisualStim;
     end
 
-    function CallbackFileMenuLoadParams(hObj,event)
-        [FileName,PathName,FilterIndex] = uigetfile('*.mat','Choose VS properties file',VS.par.PCspecificFilesDir);
-        props=load([PathName FileName]);
+    function CallbackFileMenuLoadParams(hObj,event,fullFileName)
+        if nargin==0
+            [FileName,PathName,FilterIndex] = uigetfile('*.mat','Choose VS properties file',VS.par.PCspecificFilesDir);
+            fullFileName=[PathName FileName];
+        end
+        props=load(fullFileName);
         if strcmp(props.VS_class,class(VS.par.VSO))
             for i=1:size(props.props,1)
                 if isprop(VS.par.VSO,props.props{i,1})
@@ -507,7 +517,7 @@ initializeVisualStim;
 
             VS.hand.GenealBox.hRunHBox=uix.HBox('Parent',VS.hand.GenealBox.hMainVBox, 'Spacing',4, 'Padding',4);
             VS.hand.GenealBox.hRunPush=uicontrol('Parent', VS.hand.GenealBox.hRunHBox, 'Style','push', 'String','Run VS (Esc = abort)','Callback',@CallbackRunVSPush);
-            VS.hand.GenealBox.hRunBatchPush=uicontrol('Parent', VS.hand.GenealBox.hRunHBox, 'Style','push', 'String','Run Batch (Esc = abort)','Callback',@CallbackRunBatchVSPush);
+            VS.hand.GenealBox.hRunBatchPush=uicontrol('Parent', VS.hand.GenealBox.hRunHBox, 'Style','push', 'String','Open batch GUI','Callback',@CallbackRunBatchVSPush);
             set(VS.hand.GenealBox.hRunHBox, 'Widths',[-1 -1]);
 
             %VS.hand.GenealBox.hRunTest=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','push', 'String','Run & Test VS','Callback',@CallbackTestVSPush);
@@ -724,8 +734,11 @@ initializeVisualStim;
 
     function closeMainGUIFigure(hObj,event)
         Screen('CloseAll');
+        if ~isempty(VS.hand.batchMode.hBatchFigure)
+            delete(VS.hand.batchMode.hBatchFigure);
+        end
+        delete(hObj);
         clear VS;
         Priority(0);
-        delete(hObj);
     end
 end
