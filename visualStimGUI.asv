@@ -271,12 +271,12 @@ initializeVisualStim;
         
         VS.hand.batchMode.hpromote = uicontrol('Parent', VS.hand.batchMode.hListButtonBox, 'String', '^');
         VS.hand.batchMode.hdemote = uicontrol('Parent', VS.hand.batchMode.hListButtonBox, 'String', 'v');
-        VS.hand.batchMode.hrunbatch = uicontrol('Parent',VS.hand.batchMode.hListButtonBox,'String','Run batch >');
+        VS.hand.batchMode.hrunbatch = uicontrol('Parent',VS.hand.batchMode.hListButtonBox,'String','>');
         
         % Set button callbacks
-        set(VS.hand.batchMode.hpromote, 'Callback', @(s,e)CallbackMoveitem(1))
-        set(VS.hand.batchMode.hdemote, 'Callback', @(s,e)CallbackMoveitem(-1))
-        set(VS.hand.batchMode.hrunbatch, 'Callback', @CallbackRunBatch);
+        set(promote, 'Callback', @(s,e)CallbackMoveitem(1))
+        set(demote, 'Callback', @(s,e)CallbackMoveitem(-1))
+        set(runbatch, 'Callback', @(s,e)LaunchBatch);
         
         function CallbackMoveitem(increment)
             % Get the existing items and the current item
@@ -298,12 +298,6 @@ initializeVisualStim;
             set(hlist, 'string', items);
             set(hlist, 'value', toswap)
         end
-
-        function CallbackRunBatch(hObj,event)
-            for i=1:numel()
-            CallbackRunVSPush;
-        end
-        
 
     end
 

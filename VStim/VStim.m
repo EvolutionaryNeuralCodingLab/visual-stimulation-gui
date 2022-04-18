@@ -7,7 +7,7 @@ classdef (Abstract) VStim < handle
         preSessionDelay     = 1;
         postSessionDelay    = 0;
         trialStartTrig      = 'MC=2,Intan=6';
-        user = 'Undefined';
+        user = '';
     end
     properties (SetObservable, AbortSet = true, SetAccess=public)
         visualFieldBackgroundLuminance  = 0; %mean grey value measured by SR and AH the 04-12-19 136
