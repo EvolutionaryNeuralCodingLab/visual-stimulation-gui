@@ -9,18 +9,18 @@ classdef VS_loomingCircle < VStim
         circleVelocity = 100;
         randomizeVelocity = true;
         
-        circleTrueSize = 35;
-        circleInitialDistance = 300;
+        circleTrueSize = 30;
+        circleInitialDistance = 1000;
         time2Collision = 5;
         
         postLoomTime = 2;
         
-        eye2ScreenDistance = 25;
+        eye2ScreenDistance = 10;
         
         minimalRealDistance = 5;
         circleWithRandomNoise = false;
         
-        displayWidthHeight = [43 27]; %the width and height of the screen in cm [width height]
+        displayWidthHeight = [40 30]; %the width and height of the screen in cm [width height]
         
         selectedScreen = 1;
     end
