@@ -310,7 +310,7 @@ classdef (Abstract) VStim < handle
                 case 'onScreen'
                 case 'LabJack-Win'
                     obj.trigChNames=[[1;2;3;4] [5;6;7;8]];
-                    chNames=[{'DIO0','DIO4'};{'DIO1','DIO5'};{'DIO2','DIO6'};{'DIO3','DIO7'}];
+                    chNames=[{'AIN0','FIO4'};{'AIN1','FIO5'};{'AIN2','FIO6'};{'AIN3','FIO7'}];
                     if isunix || ismac
                         fprintf('The chosen synchronization method, LabJack-Win, will not work on Linux/Mac!!! No triggers will be sent!!!\nSwitching to sync on display only!\n');
                         obj.selectedDigitalIO='onScreen';
@@ -355,6 +355,7 @@ classdef (Abstract) VStim < handle
                 case 'LabJack-Win'
                     tmpNames=obj.trigChNames(TTLNum,:);
                     tmpValues=[TTLValue;TTLValue]';
+                    obj.digiValuesNET(tmpNames(:))=tmpValues(:);
                     for i=1:numel(tmpNames),obj.digiValuesNET(tmpNames(i))=tmpValues(i);end
                     LabJack.LJM.eWriteNames(obj.ioObj, numel(obj.trigChNames), obj.digiNamesNET, obj.digiValuesNET, 0);
             end

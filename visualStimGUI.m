@@ -382,9 +382,13 @@ initializeVisualStim;
     function CallbackInitializeTriggersPush(hObj,event)
         VS.par.VSO.initializeTTL;
         VS.par.VSO.sendTTL(1,true);
+        WaitSecs(0.25);
         VS.par.VSO.sendTTL(2,true);
+        WaitSecs(0.25);
         VS.par.VSO.sendTTL(3,true);
+        WaitSecs(0.25);
         VS.par.VSO.sendTTL(4,true);
+        WaitSecs(0.25);
         VS.par.VSO.sendTTL(1,false);
         VS.par.VSO.sendTTL(2,false);
         VS.par.VSO.sendTTL(3,false);
