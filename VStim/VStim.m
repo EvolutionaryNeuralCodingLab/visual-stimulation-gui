@@ -281,62 +281,67 @@ classdef (Abstract) VStim < handle
         
         function initializeTTL(obj)
             %select the digital IO scheme
-            switch obj.selectedDigitalIO
-                case 'parallelPort-Win'
-                    obj.trigChNames=[[1;2;3;4] [5;6;7;8]];
-                    if isunix || ismac
-                        fprintf('The chosen synchronization method, parallelPort-Win, will not work on Linux/Mac!!! No triggers will be sent!!!\nSwitching to sync on display only!\n');
-                        obj.selectedDigitalIO='onScreen';
-                    end
-                    if isempty(obj.ioObj)
-                        %create IO64 interface object
-                        obj.ioObj.ioObj = io64();
-                        
-                        %install the inpoutx64.dll driver, status = 0 if installation successful
-                        obj.ioObj.status = io64(obj.ioObj.ioObj);
-                        
-                        if (obj.ioObj.status ~= 0)
-                            error('inp/outp installation failed!!!!');
+            try
+                switch obj.selectedDigitalIO
+                    case 'parallelPort-Win'
+                        obj.trigChNames=[[1;2;3;4] [5;6;7;8]];
+                        if isunix || ismac
+                            fprintf('The chosen synchronization method, parallelPort-Win, will not work on Linux/Mac!!! No triggers will be sent!!!\nSwitching to sync on display only!\n');
+                            obj.selectedDigitalIO='onScreen';
                         end
-                    else
-                        disp('Parallel port object already exists');
-                    end
-                case 'parallelPort-Linux'
-                    obj.trigChNames=[[2;3;4;5] [6;7;8;9]];
-                    if ispc || ismac
-                        fprintf('The chosen synchronization method, parallelPort-Linux, will not work on Windows/Mac!!! No triggers will be sent!!!\nSwitching to sync on display only!\n');
-                        obj.selectedDigitalIO='onScreen';
-                    end
-                case 'onScreen'
-                case 'LabJack-Win'
-                    obj.trigChNames=[[1;2;3;4] [5;6;7;8]];
-                    chNames=[{'DIO0','DIO4'};{'DIO1','DIO5'};{'DIO2','DIO6'};{'DIO3','DIO7'}];
-                    if isunix || ismac
-                        fprintf('The chosen synchronization method, LabJack-Win, will not work on Linux/Mac!!! No triggers will be sent!!!\nSwitching to sync on display only!\n');
-                        obj.selectedDigitalIO='onScreen';
-                    end
-                    fprintf('Initializing LabJack Device and checking functionality...\n');
-                    % Make the LJM .NET assembly visible in MATLAB
-                    ljmAsm = NET.addAssembly('LabJack.LJM');
-                    
-                    % Creating an object to nested class LabJack.LJM.CONSTANTS
-                    t = ljmAsm.AssemblyHandle.GetType('LabJack.LJM+CONSTANTS');
-                    LJM_CONSTANTS = System.Activator.CreateInstance(t);
-                    try
-                        [ljmError, obj.ioObj] = LabJack.LJM.OpenS('ANY', 'ANY', 'ANY', 0);
-                        showDeviceInfo(obj.ioObj);
-                        % Reading from the digital line in case it was previously an analog input.
-                        nCh=numel(chNames);
-                        obj.digiNamesNET=NET.createArray('System.String', nCh);
-                        for i=1:nCh
-                            obj.digiNamesNET(i)=chNames{i};
+                        if isempty(obj.ioObj)
+                            %create IO64 interface object
+                            obj.ioObj.ioObj = io64();
+
+                            %install the inpoutx64.dll driver, status = 0 if installation successful
+                            obj.ioObj.status = io64(obj.ioObj.ioObj);
+
+                            if (obj.ioObj.status ~= 0)
+                                error('inp/outp installation failed!!!!');
+                            end
+                        else
+                            disp('Parallel port object already exists');
                         end
-                        obj.digiValuesNET = NET.createArray('System.Double', nCh);
-                        LabJack.LJM.eReadNames(obj.ioObj, nCh, obj.digiNamesNET, obj.digiValuesNET, 0);
-                    catch
-                        fprintf('%s\nLackJack device is not functional!!! No triggers will be sent!!!\nSwitching to sync on display only!\n',ljmError);
-                        selectedDigitalIO='onScreen';
-                    end
+                    case 'parallelPort-Linux'
+                        obj.trigChNames=[[2;3;4;5] [6;7;8;9]];
+                        if ispc || ismac
+                            fprintf('The chosen synchronization method, parallelPort-Linux, will not work on Windows/Mac!!! No triggers will be sent!!!\nSwitching to sync on display only!\n');
+                            obj.selectedDigitalIO='onScreen';
+                        end
+                    case 'onScreen'
+                    case 'LabJack-Win'
+                        obj.trigChNames=[[1;2;3;4] [5;6;7;8]];
+                        chNames=[{'DIO0','DIO4'};{'DIO1','DIO5'};{'DIO2','DIO6'};{'DIO3','DIO7'}];
+                        if isunix || ismac
+                            fprintf('The chosen synchronization method, LabJack-Win, will not work on Linux/Mac!!! No triggers will be sent!!!\nSwitching to sync on display only!\n');
+                            obj.selectedDigitalIO='onScreen';
+                        end
+                        fprintf('Initializing LabJack Device and checking functionality...\n');
+                        % Make the LJM .NET assembly visible in MATLAB
+                        ljmAsm = NET.addAssembly('LabJack.LJM');
+
+                        % Creating an object to nested class LabJack.LJM.CONSTANTS
+                        t = ljmAsm.AssemblyHandle.GetType('LabJack.LJM+CONSTANTS');
+                        LJM_CONSTANTS = System.Activator.CreateInstance(t);
+                        try
+                            [ljmError, obj.ioObj] = LabJack.LJM.OpenS('ANY', 'ANY', 'ANY', 0);
+                            showDeviceInfo(obj.ioObj);
+                            % Reading from the digital line in case it was previously an analog input.
+                            nCh=numel(chNames);
+                            obj.digiNamesNET=NET.createArray('System.String', nCh);
+                            for i=1:nCh
+                                obj.digiNamesNET(i)=chNames{i};
+                            end
+                            obj.digiValuesNET = NET.createArray('System.Double', nCh);
+                            LabJack.LJM.eReadNames(obj.ioObj, nCh, obj.digiNamesNET, obj.digiValuesNET, 0);
+                        catch
+                            fprintf('%s\nLackJack device is not functional!!! No triggers will be sent!!!\nSwitching to sync on display only!\n',ljmError);
+                            selectedDigitalIO='onScreen';
+                        end
+                end
+            catch
+                fprintf('\nImportant!!!\nCould not deliver triggers successfully! Triggers will only be shown on the screen!!!\n')
+                obj.selectedDigitalIO='onScreen';
             end
 
         end %function initializeTTL
@@ -390,7 +395,9 @@ classdef (Abstract) VStim < handle
         end
         
         function delete(obj)
-            LabJack.LJM.Close(obj.ioObj);
+            if strcmp(obj.selectedDigitalIO,'LabJack-Win')
+                LabJack.LJM.Close(obj.ioObj);
+            end
         end
         
     end
