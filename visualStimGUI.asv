@@ -55,7 +55,7 @@ VS.par.PCspecificFilesDir=[VS.par.VSDirectory VS.par.dirSep 'PCspecificFiles'];
 VS.par.savedStimFilesDir=[VS.par.VSDirectory VS.par.dirSep 'savedStims'];
 
 %verify that visual stimulation scripts are included in the path and if not add them
-if ~isfile('initialVStim.m')
+if ~isfile([VS.par.VSObjDir filesep initialVStim '.m'])
     fprintf('Default visual stimulation file was not found in path. Adding paths.\n');
     addpath(genpath(VS.par.VSDirectory));
 end
@@ -455,10 +455,16 @@ initializeVisualStim;
     end
 
     function CallbackFileMenuLoadParams(hObj,event,fullFileName)
-        if ~exist('fullFileName','var')==0
+        if ~exist('fullFileName','var')
             [FileName,PathName,FilterIndex] = uigetfile('*.mat','Choose VS properties file',VS.par.PCspecificFilesDir);
-            fullFileName=[PathName FileName];
+            if exist('FileName','var')
+                fullFileName=[PathName FileName];
+            else
+                fprintf('Stimulation not loaded!');
+                return;
+            end
         end
+        
         props=load(fullFileName);
         if strcmp(props.VS_class,class(VS.par.VSO))
             for i=1:size(props.props,1)

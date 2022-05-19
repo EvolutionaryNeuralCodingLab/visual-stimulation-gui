@@ -55,8 +55,8 @@ VS.par.PCspecificFilesDir=[VS.par.VSDirectory VS.par.dirSep 'PCspecificFiles'];
 VS.par.savedStimFilesDir=[VS.par.VSDirectory VS.par.dirSep 'savedStims'];
 
 %verify that visual stimulation scripts are included in the path and if not add them
-if ~isfile('initialVStim.m')
-    fprintf('Default visual stimulation file was not found in path. Adding paths.\n');
+if ~isfolder(VS.par.VSObjDir)
+    fprintf('Default visual stimulation folder was not found in path. Adding paths.\n');
     addpath(genpath(VS.par.VSDirectory));
 end
 
@@ -457,13 +457,19 @@ initializeVisualStim;
     function CallbackFileMenuLoadParams(hObj,event,fullFileName)
         if ~exist('fullFileName','var')
             [FileName,PathName,FilterIndex] = uigetfile('*.mat','Choose VS properties file',VS.par.PCspecificFilesDir);
-            fullFileName=[PathName FileName];
+            if exist('FileName','var')
+                fullFileName=[PathName FileName];
+            else
+                fprintf('Stimulation not loaded!');
+                return;
+            end
         end
+        
         props=load(fullFileName);
         if strcmp(props.VS_class,class(VS.par.VSO))
             for i=1:size(props.props,1)
                 if isprop(VS.par.VSO,props.props{i,1})
-                    VS.par.VSO.(props.props{i,1})=props.props{i,2}; %update object
+                    VS.par.VSO.(props.props{i,1})=cast(props.props{i,2},class(VS.par.VSO.(props.props{i,1}))); %update object
                 else
                     disp(['The loaded property : ' props.props{1,i} 'does not exist in the current visual stim Class']);
                 end
@@ -744,6 +750,7 @@ initializeVisualStim;
     end
 
     function closeMainGUIFigure(hObj,event)
+        Screen('Preference','SkipSyncTests', 1);
         Screen('CloseAll');
         if ~isempty(VS.hand.batchMode.hBatchFigure)
             delete(VS.hand.batchMode.hBatchFigure);
