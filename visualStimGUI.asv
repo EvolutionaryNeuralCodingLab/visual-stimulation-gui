@@ -455,7 +455,7 @@ initializeVisualStim;
     end
 
     function CallbackFileMenuLoadParams(hObj,event,fullFileName)
-        if ~exist('fullFileName','var')
+        if ~exist('fullFileName','var')==0
             [FileName,PathName,FilterIndex] = uigetfile('*.mat','Choose VS properties file',VS.par.PCspecificFilesDir);
             fullFileName=[PathName FileName];
         end
