@@ -1,1 +1,1 @@
-{"selectedDigitalIO":"parallelPort-Win","parallelPortNum":12304,"syncSquareSizePix":60,"syncSquareLuminosity":255,"pixelConversionFactor":7.6923,"displaySyncSignal":[true],"sendMail":[true]}
+{"selectedDigitalIO":"parallelPort-Win","parallelPortNum":888,"syncSquareSizePix":60,"syncSquareLuminosity":255,"displaySyncSignal":[true],"sendMail":[true]}
