@@ -1,3 +1,5 @@
 /PCspecificFiles/*
 /stats/*
 /savedStims/*
+PCspecificFiles/GUIConfig.txt
+PCspecificFiles/VSConfig.txt
