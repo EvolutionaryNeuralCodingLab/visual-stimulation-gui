@@ -187,7 +187,7 @@ classdef VS_movie < VStim
                         I=imread([obj.movPathName obj.movieFileName{i}]);
                         [M,N,l]=size(I);
                         
-                        if obj.inVivoSettings==1;
+                        if obj.showOnFullScreen==1
                             obj.movTex(i,obj.nVideos)=Screen('MakeTexture', obj.PTB_win,I,obj.rotation);
                         elseif N>=M
                             cutPixels=round((N-M)/2);
@@ -212,7 +212,7 @@ classdef VS_movie < VStim
                         disp('Calculating single frame textures:');
                         for i=1:obj.movFrameCount
                             
-                            if obj.inVivoSettings==1;
+                            if obj.showOnFullScreen==1
                                 obj.movTex(i,obj.nVideos)=Screen('MakeTexture', obj.PTB_win,squeeze(vid(:,:,:,ceil(i*frameRatio))),obj.rotation);
                             elseif N>=M
                                 cutPixels=round((N-M)/2);
