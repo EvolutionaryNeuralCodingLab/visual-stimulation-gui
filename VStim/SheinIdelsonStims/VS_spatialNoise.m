@@ -63,8 +63,8 @@ classdef VS_spatialNoise < VStim %modified 6/6/22
             end
             
             %what pixel value for each
-            whiteVal=round(obj.meanLuminosity-obj.contrast*obj.meanLuminosity)+1;
-            blackVal=round(obj.meanLuminosity+obj.contrast*obj.meanLuminosity)-1;
+            whiteVal=ceil(obj.meanLuminosity-obj.contrast*obj.meanLuminosity);
+            blackVal=floor(obj.meanLuminosity+obj.contrast*obj.meanLuminosity)-1;
             greyVal=obj. meanLuminosity;
 
             %generate stimulus
@@ -113,7 +113,7 @@ classdef VS_spatialNoise < VStim %modified 6/6/22
                 count = 1;
                 
                 while count <= obj.numberOfFrames
-                    Screen('DrawTexture', obj.PTB_win, tex(i,count), [], dstRect, [], 0);
+                    Screen('DrawTexture', obj.PTB_win, tex(count), [], dstRect, [], 0);
                     WaitSecs(1/obj.frameRate);
                     obj.applyBackgound;  %set background mask and finalize drawing (drawing finished)
                     obj.sendTTL(3,true); %frame start trigger
@@ -163,7 +163,7 @@ classdef VS_spatialNoise < VStim %modified 6/6/22
 
         function tex=prepareTextures(obj,trialNumber)
             for x=1:obj.numberOfFrames
-               tex(x)=Screen('MakeTexture', obj.PTB_win, obj.allNoisePatterns(:,:,trialNumber,x));
+               tex(x)=Screen('MakeTexture', obj.PTB_win, squeeze(obj.allNoisePatterns(:,:,trialNumber,x)));
             end
         end
         

@@ -182,7 +182,7 @@ initializeVisualStim;
                 if VS.par.nScreens>1
                     [VS.par.PTB_win] = Screen('OpenWindow',VS.par.screens(VS.par.currentPTBScreen));
                 else
-                    PTBScreenPosition=round([scrnPos(3)-scrnPos(3)*0.2 scrnPos(4)-scrnPos(4)*0.25 scrnPos(3) scrnPos(4)*0.95]);
+                    PTBScreenPosition=round([scrnPos(3)-scrnPos(3)*0.2 scrnPos(4)-scrnPos(4)*0.2 scrnPos(3)*0.95 scrnPos(4)]);
                     [VS.par.PTB_win] = Screen('OpenWindow',VS.par.screens(VS.par.currentPTBScreen),[],PTBScreenPosition);
                 end
             catch
@@ -191,7 +191,7 @@ initializeVisualStim;
                 if VS.par.nScreens>1
                     [VS.par.PTB_win] = Screen('OpenWindow',VS.par.screens(VS.par.currentPTBScreen));
                 else
-                    PTBScreenPosition=round([scrnPos(3)-scrnPos(3)*0.2 scrnPos(4)-scrnPos(4)*0.25 scrnPos(3) scrnPos(4)*0.95]);
+                    PTBScreenPosition=round([VS.par.GUIPosition(1)+VS.par.GUIPosition(3)+30 scrnPos(4)-sum(VS.par.GUIPosition([2 4]))-30 scrnPos(3)-30 scrnPos(4)-VS.par.GUIPosition(2)]);
                     [VS.par.PTB_win] = Screen('OpenWindow',VS.par.screens(VS.par.currentPTBScreen),[],PTBScreenPosition);
                 end
             end
