@@ -3,3 +3,4 @@
 /savedStims/*
 PCspecificFiles/GUIConfig.txt
 PCspecificFiles/VSConfig.txt
+*.asv
