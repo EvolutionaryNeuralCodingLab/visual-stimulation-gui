@@ -190,52 +190,50 @@ classdef (Abstract) VStim < handle
         end
         
         function initializeBackground(obj,event,metaProp)
-            if obj.visualFieldDiameter==0
-                obj.actualVFieldDiameter=min(obj.rect(1,3)-obj.rect(1,1),obj.rect(1,4)-obj.rect(1,2));
-            elseif obj.visualFieldDiameter==-1
-                obj.actualVFieldDiameter=min(obj.rect(1,3)-obj.rect(1,1),obj.rect(1,4)-obj.rect(1,2));
-            else
-                obj.actualVFieldDiameter=obj.visualFieldDiameter;
-            end
-            obj.centerX=(obj.rect(1,3)+obj.rect(1,1))/2+obj.horizontalShift;
-            obj.centerY=(obj.rect(1,4)+obj.rect(1,2))/2;
-            
-            obj.visualFieldRect=[obj.centerX-obj.actualVFieldDiameter/2,obj.centerY-obj.actualVFieldDiameter/2,obj.centerX+obj.actualVFieldDiameter/2,obj.centerY+obj.actualVFieldDiameter/2];
-            [x,y]=meshgrid((-obj.actualVFieldDiameter/2):(obj.actualVFieldDiameter/2-1),(-obj.actualVFieldDiameter/2):(obj.actualVFieldDiameter/2-1));
-            %sig = @(x,y) 1 ./ (1 + exp( (sqrt(x.^2 + y.^2 - (obj.actualVFieldDiameter/2-50).^2 )) ));
-            sig = @(x,y) 1-1 ./ ( 1 + exp(sqrt(x.^2 + y.^2) - obj.actualVFieldDiameter/2+1).^obj.backgroundMaskSteepness );
-            
-            %maskblob=ones(obj.actualVFieldDiameter, obj.actualVFieldDiameter, 2) * obj.backgroudLuminance;
-            %maskblob(:,:,2)=sig(x,y)*obj.whiteIdx;
-            
-            maskblobOff=ones(obj.rect(4)-obj.rect(2),obj.rect(3)-obj.rect(1),2) * obj.whiteIdx;
-            maskblobOff(:,:,1)=obj.visualFieldBackgroundLuminance; %obj.blackIdx
-            maskblobOff((obj.visualFieldRect(2)+1):obj.visualFieldRect(4),(obj.visualFieldRect(1)+1):obj.visualFieldRect(3),2)=sig(x,y)*obj.whiteIdx;
+            for i=1:numel(obj.PTB_win)
+                if obj.visualFieldDiameter==0
+                    obj.actualVFieldDiameter(i)=min(obj.rect(i,3)-obj.rect(i,1),obj.rect(i,4)-obj.rect(i,2));
+                elseif obj.visualFieldDiameter==-1
+                    obj.actualVFieldDiameter(i)=min(obj.rect(i,3)-obj.rect(i,1),obj.rect(i,4)-obj.rect(i,2));
+                else
+                    obj.actualVFieldDiameter(i)=obj.visualFieldDiameter(i);
+                end
+                obj.centerX(i)=(obj.rect(i,3)+obj.rect(i,1))/2+obj.horizontalShift;
+                obj.centerY(i)=(obj.rect(i,4)+obj.rect(i,2))/2;
 
-            if obj.DMDcorrectionIntensity
-                [~,maskblobOff(:,:,2)]=meshgrid(1:size(maskblobOff,2),1:size(maskblobOff,1));
-                maskblobOff(:,:,2)=maskblobOff(:,:,2)/max(max(maskblobOff(:,:,2)))*255;                
-            end
-            
-            if obj.showOnFullScreen==1
-                maskblobOff=ones(obj.rect(1,4)-obj.rect(1,2),obj.rect(1,3)-obj.rect(1,1),2) * obj.blackIdx;
-                maskblobOff(:,:,1)=obj.blackIdx;
-            end
-            
-            maskblobOn=maskblobOff; %make on mask addition
-            if obj.displaySyncSignal
-                maskblobOn((obj.rect(1,4)-obj.syncSquareSizePix):end,1:obj.syncSquareSizePix,1)=obj.syncSquareLuminosity;
-                maskblobOn((obj.rect(1,4)-obj.syncSquareSizePix):end,1:obj.syncSquareSizePix,2)=obj.whiteIdx;
-                maskblobOff((obj.rect(1,4)-obj.syncSquareSizePix):end,1:obj.syncSquareSizePix,2)=obj.whiteIdx;
-            end 
-            
-            % Build a single transparency mask texture:
-            for i=1:obj.nPTBScreens
+                obj.visualFieldRect(i,:)=[obj.centerX(i)-obj.actualVFieldDiameter(i)/2,obj.centerY(i)-obj.actualVFieldDiameter(i)/2,obj.centerX(i)+obj.actualVFieldDiameter(i)/2,obj.centerY(i)+obj.actualVFieldDiameter(i)/2];
+                [x,y]=meshgrid((-obj.actualVFieldDiameter(i)/2):(obj.actualVFieldDiameter(i)/2-1),(-obj.actualVFieldDiameter(i)/2):(obj.actualVFieldDiameter(i)/2-1));
+                %sig = @(x,y) 1 ./ (1 + exp( (sqrt(x.^2 + y.^2 - (obj.actualVFieldDiameter/2-50).^2 )) ));
+                sig = @(x,y) 1-1 ./ ( 1 + exp(sqrt(x.^2 + y.^2) - obj.actualVFieldDiameter(i)/2+1).^obj.backgroundMaskSteepness );
+
+                %maskblob=ones(obj.actualVFieldDiameter, obj.actualVFieldDiameter, 2) * obj.backgroudLuminance;
+                %maskblob(:,:,2)=sig(x,y)*obj.whiteIdx;
+
+                maskblobOff=ones(obj.rect(i,4)-obj.rect(i,2),obj.rect(i,3)-obj.rect(i,1),2) * obj.whiteIdx;
+                maskblobOff(:,:,1)=obj.visualFieldBackgroundLuminance; %obj.blackIdx
+                maskblobOff((obj.visualFieldRect(i,2)+1):obj.visualFieldRect(i,4),(obj.visualFieldRect(i,1)+1):obj.visualFieldRect(i,3),2)=sig(x,y)*obj.whiteIdx;
+
+                if obj.DMDcorrectionIntensity
+                    [~,maskblobOff(:,:,2)]=meshgrid(1:size(maskblobOff,2),1:size(maskblobOff,1));
+                    maskblobOff(:,:,2)=maskblobOff(:,:,2)/max(max(maskblobOff(:,:,2)))*255;
+                end
+
+                if obj.showOnFullScreen==1
+                    maskblobOff=ones(obj.rect(i,4)-obj.rect(i,2),obj.rect(i,3)-obj.rect(i,1),2) * obj.blackIdx;
+                    maskblobOff(:,:,1)=obj.blackIdx;
+                end
+
+                maskblobOn=maskblobOff; %make on mask addition
+                if obj.displaySyncSignal
+                    maskblobOn((obj.rect(i,4)-obj.syncSquareSizePix):end,1:obj.syncSquareSizePix,1)=obj.syncSquareLuminosity;
+                    maskblobOn((obj.rect(i,4)-obj.syncSquareSizePix):end,1:obj.syncSquareSizePix,2)=obj.whiteIdx;
+                    maskblobOff((obj.rect(i,4)-obj.syncSquareSizePix):end,1:obj.syncSquareSizePix,2)=obj.whiteIdx;
+                end
+
+                % Build a single transparency mask texture:
                 obj.masktexOn(i)=Screen('MakeTexture', obj.PTB_win(i), maskblobOn);
                 obj.masktexOff(i)=Screen('MakeTexture', obj.PTB_win(i), maskblobOff);
-            end
-            
-            for i=1:obj.nPTBScreens
+
                 Screen('FillRect',obj.PTB_win(i),obj.visualFieldBackgroundLuminance);
                 obj.syncMarkerOn = false;
                 Screen('DrawTexture',obj.PTB_win(i),obj.masktexOff(i));
@@ -369,10 +367,10 @@ classdef (Abstract) VStim < handle
         function obj=updateActualStimDuration(obj,event,metaProp)
             %calculate optimal stim duration (as an integer number of frames)
             for i=1:obj.nPTBScreens
-            obj.actualStimDuration(i)=round(obj.stimDuration/obj.ifi(i))*obj.ifi(i);
+                obj.actualStimDuration(i)=round(obj.stimDuration/obj.ifi(i))*obj.ifi(i);
             end
         end
-        
+
         function calcMicrons(obj)
             disp([num2str(obj.numPixels), ' is ', num2str(obj.numPixels*obj.pixelConversionFactor), ' microns']);
             %uses the micron/pixel ratio to convert entered number of

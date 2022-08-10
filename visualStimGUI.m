@@ -106,7 +106,7 @@ rng('shuffle');
 %initial configuration
 VS.par.currentVSO=find(strcmp(VS.par.VSMethods,initialVStim)); %the default visual stim (first on the list)
 VS.par.currentGUIScreen=2; %the default monitor to display GUI
-VS.par.currentPTBScreen=1; %the default monitor to display the visual stimulation
+VS.par.currentPTBScreen=[1 2]; %the default monitor to display the visual stimulation
 
 %check configuration file for PC specific values
 visualStimGUIDir=fileparts(which('visualStimGUI.m'));
@@ -164,6 +164,9 @@ initializeVisualStim;
         if VS.par.nScreens==1
             VS.par.currentPTBScreen=1;
             VS.par.currentGUIScreen=1;
+        elseif VS.par.nScreens==2
+            VS.par.currentPTBScreen=2;
+            VS.par.currentGUIScreen=1;
         end
 
         for i=1:numel(VS.par.screens)
@@ -180,7 +183,9 @@ initializeVisualStim;
         if ~simulationModel
             try
                 if VS.par.nScreens>1
-                    [VS.par.PTB_win] = Screen('OpenWindow',VS.par.screens(VS.par.currentPTBScreen));
+                    for i=1:numel(VS.par.currentPTBScreen)
+                        [VS.par.PTB_win(i)] = Screen('OpenWindow',VS.par.screens(VS.par.currentPTBScreen(i)));
+                    end
                 else
                     PTBScreenPosition=round([scrnPos(3)-scrnPos(3)*0.2 scrnPos(4)-scrnPos(4)*0.25 scrnPos(3) scrnPos(4)*0.95]);
                     [VS.par.PTB_win] = Screen('OpenWindow',VS.par.screens(VS.par.currentPTBScreen),[],PTBScreenPosition);
@@ -189,7 +194,9 @@ initializeVisualStim;
                 disp('Please notice: Monitor test in PTB failed, use only for simulation mode!!!!');
                 Screen('Preference','SkipSyncTests', 1);
                 if VS.par.nScreens>1
-                    [VS.par.PTB_win] = Screen('OpenWindow',VS.par.screens(VS.par.currentPTBScreen));
+                    for i=1:numel(VS.par.currentPTBScreen)
+                        [VS.par.PTB_win(i)] = Screen('OpenWindow',VS.par.screens(VS.par.currentPTBScreen(i)));
+                    end
                 else
                     PTBScreenPosition=round([scrnPos(3)-scrnPos(3)*0.2 scrnPos(4)-scrnPos(4)*0.25 scrnPos(3) scrnPos(4)*0.95]);
                     [VS.par.PTB_win] = Screen('OpenWindow',VS.par.screens(VS.par.currentPTBScreen),[],PTBScreenPosition);
@@ -553,15 +560,17 @@ initializeVisualStim;
             VS.hand.GenealBox.hScreensPanel = uix.Panel('Parent',VS.hand.GenealBox.hMainVBox, 'Title','PTB Screens');
             VS.hand.GenealBox.hScreenVBox=uix.VBox('Parent',VS.hand.GenealBox.hScreensPanel, 'Spacing',4, 'Padding',4);
             VS.hand.GenealBox.hInitializeScreensPush=uicontrol('Parent', VS.hand.GenealBox.hScreenVBox, 'Style','push', 'String','initialize screen','Callback',@CallbackInitializeScreenPush);
-
-            VS.hand.GenealBox.hPTBScreenPanel = uipanel('Parent', VS.hand.GenealBox.hScreenVBox,'Title','PTB monitor');
-            VS.hand.GenealBox.hPTBScreenButtongroup = uix.HButtonBox('Parent', VS.hand.GenealBox.hPTBScreenPanel);
-            for i=1:numel(VS.par.screens)
-                VS.hand.GenealBox.ScreenbuttonPTB(i) = uicontrol('Parent',VS.hand.GenealBox.hPTBScreenButtongroup,...
-                    'Style','radiobutton','String',num2str(VS.par.screens(i)),'Callback',{@CallbackChangeMonitorConfiguration,i,0});
+            %PTB screen selection
+            for s=1:numel(VS.par.currentPTBScreen)
+                VS.hand.GenealBox.hPTBScreenPanel(s) = uipanel('Parent', VS.hand.GenealBox.hScreenVBox,'Title',['PTB monitor ' num2str(s)]);
+                VS.hand.GenealBox.hPTBScreenButtongroup(s) = uix.HButtonBox('Parent', VS.hand.GenealBox.hPTBScreenPanel(s));
+                for i=1:numel(VS.par.screens)
+                    VS.hand.GenealBox.ScreenbuttonPTB(s,i) = uicontrol('Parent',VS.hand.GenealBox.hPTBScreenButtongroup(s),...
+                        'Style','radiobutton','String',num2str(VS.par.screens(i)),'Callback',{@CallbackChangeMonitorConfiguration,i,0});
+                end
+                set(VS.hand.GenealBox.ScreenbuttonPTB(s,VS.par.currentPTBScreen(s)),'value',1);
             end
-            set(VS.hand.GenealBox.ScreenbuttonPTB(VS.par.currentPTBScreen),'value',1);
-
+            %GUI screen selection
             VS.hand.GenealBox.hGUIScreenPanel = uipanel('Parent', VS.hand.GenealBox.hScreenVBox,'Title','GUI monitor');
             VS.hand.GenealBox.hGUIScreenButtongroup = uix.HButtonBox('Parent', VS.hand.GenealBox.hGUIScreenPanel);
             for i=1:numel(VS.par.screens)
@@ -572,7 +581,7 @@ initializeVisualStim;
 
             VS.hand.GenealBox.hInteractiveGUIparent = uipanel('Parent', VS.hand.GenealBox.hScreenVBox,'Title','VS interactive panel');
 
-            set(VS.hand.GenealBox.hScreenVBox, 'Heights',[30 40 40 -1]);
+            set(VS.hand.GenealBox.hScreenVBox, 'Heights',[30 40*ones(1,1+numel(VS.par.currentPTBScreen)) -1]);
             set(VS.hand.GenealBox.hMainVBox, 'Heights',[50 30 30 30 30 -1]);
 
         else %use uiextras and not uix
