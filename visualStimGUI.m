@@ -180,6 +180,12 @@ initializeVisualStim;
         VS.par.GUIPosition=abs([scrnPos(1)+(scrnPos(3)-scrnPos(1))*0.01 scrnPos(2)+(scrnPos(4)-scrnPos(2))*0.07 (scrnPos(3)-scrnPos(1))*0.4 (scrnPos(4)-scrnPos(2))*0.8]);
         set(VS.hand.hMainFigure,'position',VS.par.GUIPosition);
 
+        if any(VS.par.currentPTBScreen>VS.par.nScreens)
+           msgbox({'Define screen configuration do not match available screens.','Reverting to minimal configuration. Please modify and initialize screens!'},'visual stimulation GUI error','help','replace');
+           VS.par.currentGUIScreen=1;
+           VS.par.currentPTBScreen=2;
+        end
+
         if ~simulationModel
             try
                 if VS.par.nScreens>1
