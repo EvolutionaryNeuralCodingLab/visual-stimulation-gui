@@ -173,18 +173,21 @@ classdef (Abstract) VStim < handle
             obj.simulationMode=false;
         end
         
-        function applyBackgound(obj) %apply background and change the synchrony marker state (on/off)
+        function applyBackgound(obj,screens) %apply background and change the synchrony marker state (on/off)
+            if nargin==1
+                screens=1:obj.nPTBScreens;
+            end
             obj.syncMarkerOn=~obj.syncMarkerOn;
             if obj.syncMarkerOn
-                for i=1:obj.nPTBScreens
+                for i=1:screens
                     Screen('DrawTexture',obj.PTB_win(i),obj.masktexOn(i));
                 end
             else
-                for i=1:obj.nPTBScreens
+                for i=1:screens
                     Screen('DrawTexture',obj.PTB_win(i),obj.masktexOff(i));
                 end
             end
-            for i=1:obj.nPTBScreens
+            for i=1:screens
                 Screen('DrawingFinished', obj.PTB_win(i)); % Tell PTB that no further drawing commands will follow before Screen('Flip')
             end
         end
