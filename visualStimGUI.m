@@ -1,6 +1,6 @@
 function []=visualStimGUI(varargin)
 %% Default params
-simulationModel=false;
+simulationMode=false;
 initialVStim='VS_testStim';
 % PsychImaging('PrepareConfiguration');
 % PsychImaging('AddTask', 'General', 'UsePanelFitter', [600 450], 'Aspect');
@@ -94,19 +94,14 @@ VS.par.VSMethods=cellfun(@(x) x(1:end-2),VS.par.VSMethods,'UniformOutput',0);
 VS.par.VSObjNames=cellfun(@(x) x(4:end),VS.par.VSMethods,'UniformOutput',0);
 %check Matlab version for using uiextras of uix gui layout support
 matlabVer=strsplit(version,'.');
-if str2num(matlabVer{1})>=8
-    VS.par.useNewUIX=true;
-else
-    VS.par.useNewUIX=false;
-end
 
 %reseed random number generator
 rng('shuffle');
 
 %initial configuration
 VS.par.currentVSO=find(strcmp(VS.par.VSMethods,initialVStim)); %the default visual stim (first on the list)
-VS.par.currentGUIScreen=2; %the default monitor to display GUI
-VS.par.currentPTBScreen=[1 2]; %the default monitor to display the visual stimulation
+VS.par.screenAssignment=[3,2,3]; %1=nothing, 2=GUI, 3=VStim, eg [1, 2, 2] - 3 screen configuraiton with the first and last screen for stimulation and the 2nd for GUI
+VS.par.screenTypes={'None','GUI','VStim'};
 
 %check configuration file for PC specific values
 visualStimGUIDir=fileparts(which('visualStimGUI.m'));
@@ -124,7 +119,7 @@ if exist(configFile,'file')
 end
 %initialize Psychophysics toolbox screens
 VS.par.PTB_win=[];
-initializeScreens(simulationModel);
+initializeScreens(simulationMode);
 VS.hand.batchMode.hBatchFigure=[]; %initialize batch mode figure handle - important for later
 
 createVSGUI; % Create the main GUI of the visual stimulation GUI
@@ -139,9 +134,9 @@ initializeVisualStim;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% %%%%%%%%%%%%%%%%%%%%%%%%%% Initialize PTB Screen %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    function initializeScreens(simulationModel)
+    function initializeScreens(simulationMode)
         if nargin==0
-            simulationModel=0;
+            simulationMode=0;
         end
         Screen('CloseAll');
         VS.par.screens=Screen('Screens');
@@ -161,14 +156,6 @@ initializeVisualStim;
         end
         VS.par.nScreens=numel(VS.par.screens);
 
-        if VS.par.nScreens==1
-            VS.par.currentPTBScreen=1;
-            VS.par.currentGUIScreen=1;
-        elseif VS.par.nScreens==2
-            VS.par.currentPTBScreen=2;
-            VS.par.currentGUIScreen=1;
-        end
-
         for i=1:numel(VS.par.screens)
             screenProps=Screen('Resolution', VS.par.screens(i));
             VS.par.ScreenWindowWidth(i)=screenProps.width;
@@ -176,44 +163,46 @@ initializeVisualStim;
             VS.par.ScreenFrameRate(i)=screenProps.hz;
             VS.par.ScreenPixelSize(i)=screenProps.pixelSize;
         end
+
+        if numel(VS.par.screenAssignment)>VS.par.nScreens
+            msgbox({'Define screen configuration do not match available screens.','Reverting to minimal configuration. Please modify and initialize screens!'},'visual stimulation GUI error','help','replace');
+            if VS.par.nScreens==1
+                VS.par.screenAssignment=[3];
+            elseif VS.par.nScreens==2
+                VS.par.screenAssignment=[3,2];
+            elseif VS.par.nScreens==3
+                VS.par.screenAssignment=[3,3,1];
+            end
+        end
+
         scrnPos=VS.par.screenPositionsMatlab(VS.par.currentGUIScreen,:);
         VS.par.GUIPosition=abs([scrnPos(1)+(scrnPos(3)-scrnPos(1))*0.01 scrnPos(2)+(scrnPos(4)-scrnPos(2))*0.07 (scrnPos(3)-scrnPos(1))*0.4 (scrnPos(4)-scrnPos(2))*0.8]);
         set(VS.hand.hMainFigure,'position',VS.par.GUIPosition);
 
-        if any(VS.par.currentPTBScreen>VS.par.nScreens)
-           msgbox({'Define screen configuration do not match available screens.','Reverting to minimal configuration. Please modify and initialize screens!'},'visual stimulation GUI error','help','replace');
-           VS.par.currentGUIScreen=1;
-           VS.par.currentPTBScreen=2;
-        end
-
-        if ~simulationModel
+        if ~simulationMode && VS.par.nScreens~=1
             try
-                if VS.par.nScreens>1
-                    for i=1:numel(VS.par.currentPTBScreen)
-                        [VS.par.PTB_win(i)] = Screen('OpenWindow',VS.par.screens(VS.par.currentPTBScreen(i)));
-                    end
-                else
-                    PTBScreenPosition=round([scrnPos(3)-scrnPos(3)*0.2 scrnPos(4)-scrnPos(4)*0.25 scrnPos(3) scrnPos(4)*0.95]);
-                    [VS.par.PTB_win] = Screen('OpenWindow',VS.par.screens(VS.par.currentPTBScreen),[],PTBScreenPosition);
-                end
+                initializePTBScreens;
             catch
                 disp('Please notice: Monitor test in PTB failed, use only for simulation mode!!!!');
                 Screen('Preference','SkipSyncTests', 1);
-                if VS.par.nScreens>1
-                    for i=1:numel(VS.par.currentPTBScreen)
-                        [VS.par.PTB_win(i)] = Screen('OpenWindow',VS.par.screens(VS.par.currentPTBScreen(i)));
-                    end
-                else
-                    PTBScreenPosition=round([scrnPos(3)-scrnPos(3)*0.2 scrnPos(4)-scrnPos(4)*0.25 scrnPos(3) scrnPos(4)*0.95]);
-                    [VS.par.PTB_win] = Screen('OpenWindow',VS.par.screens(VS.par.currentPTBScreen),[],PTBScreenPosition);
-                end
+                initializePTBScreens;
             end
         else
             Screen('Preference','SkipSyncTests', 1);
             PTBScreenPosition=round([scrnPos(3)-150 scrnPos(4)-410 scrnPos(3)-50 scrnPos(4)-310]);
-            [VS.par.PTB_win,VS.par.screenRect] = Screen('OpenWindow',VS.par.screens(VS.par.currentPTBScreen),[],PTBScreenPosition);
+            [VS.par.PTB_win,VS.par.screenRect] = Screen('OpenWindow',VS.par.screens(1),[],PTBScreenPosition);
         end
     end
+
+    function initializePTBScreens()
+        for i=1:VS.par.nScreens
+            if VS.par.screenAssignment(i)==3
+                [VS.par.PTB_win(i)] = Screen('OpenWindow',VS.par.screens(i));
+            end
+        end
+        VS.par.PTB_win=VS.par.PTB_win(find(VS.par.screenAssignment==3)); %keep only active screens to send visual stim object
+    end
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%% Initialize VS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     function initializeVisualStim()
@@ -377,8 +366,6 @@ initializeVisualStim;
             VSMetaData=VS.par.VSO.getLastStimStatistics(VS.hand.stimulationStatisticsFigure); %if a figure handle is added as input object plots
             print(saveFile(1:end-4),'-djpeg','-r300');
         end
-
-
     end
 
 
@@ -422,20 +409,10 @@ initializeVisualStim;
     end
     function CallbackTestVSPush(hObj,event)
     end
-    function CallbackChangeMonitorConfiguration(hObj,event,currentPTBScreen,currentGUIScreen)
-        if currentPTBScreen>0
-            VS.par.currentPTBScreen=currentPTBScreen;
-        elseif currentGUIScreen>0
-            VS.par.currentGUIScreen=currentGUIScreen;
-        end
-
-        for i=1:VS.par.nScreens
-            set(VS.hand.GenealBox.ScreenbuttonPTB(i),'value',0);
-            set(VS.hand.GenealBox.ScreenbuttonGUI(i),'value',0);
-        end
-        set(VS.hand.GenealBox.ScreenbuttonPTB(VS.par.currentPTBScreen),'value',1);
-        set(VS.hand.GenealBox.ScreenbuttonGUI(VS.par.currentGUIScreen),'value',1);
-
+    function CallbackChangeMonitorConfiguration(hObj,event,monitorNum,buttonPressed)
+        values=set(event.Source.Parent.Children,'Value',false);
+        hObj.Value=true;
+        VS.par.screenAssignment(monitorNum)=buttonPressed;
         disp('Press initialize to update the configuration');
     end
 %% %%%%%%%%%%%%%%%%%%%%%%%%%% Properties callbacks %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -533,235 +510,124 @@ initializeVisualStim;
         end
 
         set(VS.hand.visualStimMenu.([VS.par.VSMethods{VS.par.currentVSO(1)}]),'Checked','on'); %select one of the stims
-        if VS.par.useNewUIX %use uix for GUI layouts
 
-            % Arrange the main interface windows
-            VS.hand.hMainWindow = uix.HBoxFlex('Parent',VS.hand.hMainFigure, 'Spacing',8);
-            VS.hand.hGenealBox = uix.VBox('Parent',VS.hand.hMainWindow, 'Spacing',4, 'Padding',4);
-            VS.hand.hPropertyBox = uix.VBox('Parent',VS.hand.hMainWindow, 'Spacing',4, 'Padding',4);
-            set(VS.hand.hMainWindow, 'Widths',[-1 -1]);
+        % Arrange the main interface windows
+        VS.hand.hMainWindow = uix.HBoxFlex('Parent',VS.hand.hMainFigure, 'Spacing',8);
+        VS.hand.hGenealBox = uix.VBox('Parent',VS.hand.hMainWindow, 'Spacing',4, 'Padding',4);
+        VS.hand.hPropertyBox = uix.VBox('Parent',VS.hand.hMainWindow, 'Spacing',4, 'Padding',4);
+        set(VS.hand.hMainWindow, 'Widths',[-1 -1]);
 
-            % Set left box
-            VS.hand.GenealBox.hGeneralBoxPanel = uix.Panel('Parent',VS.hand.hGenealBox, 'Title','General');
-            VS.hand.GenealBox.hMainVBox = uix.VBox('Parent',VS.hand.GenealBox.hGeneralBoxPanel, 'Spacing',4, 'Padding',4);
+        % Set left box
+        VS.hand.GenealBox.hGeneralBoxPanel = uix.Panel('Parent',VS.hand.hGenealBox, 'Title','General');
+        VS.hand.GenealBox.hMainVBox = uix.VBox('Parent',VS.hand.GenealBox.hGeneralBoxPanel, 'Spacing',4, 'Padding',4);
 
-            VS.hand.GenealBox.hRunHBox=uix.HBox('Parent',VS.hand.GenealBox.hMainVBox, 'Spacing',4, 'Padding',4);
-            VS.hand.GenealBox.hRunPush=uicontrol('Parent', VS.hand.GenealBox.hRunHBox, 'Style','push', 'String','Run VS (Esc = abort)','Callback',@CallbackRunVSPush);
-            VS.hand.GenealBox.hRunBatchPush=uicontrol('Parent', VS.hand.GenealBox.hRunHBox, 'Style','push', 'String','Open batch GUI','Callback',@CallbackRunBatchVSPush);
-            set(VS.hand.GenealBox.hRunHBox, 'Widths',[-1 -1]);
+        VS.hand.GenealBox.hRunHBox=uix.HBox('Parent',VS.hand.GenealBox.hMainVBox, 'Spacing',4, 'Padding',4);
+        VS.hand.GenealBox.hRunPush=uicontrol('Parent', VS.hand.GenealBox.hRunHBox, 'Style','push', 'String','Run VS (Esc = abort)','Callback',@CallbackRunVSPush);
+        VS.hand.GenealBox.hRunBatchPush=uicontrol('Parent', VS.hand.GenealBox.hRunHBox, 'Style','push', 'String','Open batch GUI','Callback',@CallbackRunBatchVSPush);
+        set(VS.hand.GenealBox.hRunHBox, 'Widths',[-1 -1]);
 
-            %VS.hand.GenealBox.hRunTest=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','push', 'String','Run & Test VS','Callback',@CallbackTestVSPush);
-            VS.hand.GenealBox.hSaveStats=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','checkbox', 'String','Save stats to file','value',1);
+        %VS.hand.GenealBox.hRunTest=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','push', 'String','Run & Test VS','Callback',@CallbackTestVSPush);
+        VS.hand.GenealBox.hSaveStats=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','checkbox', 'String','Save stats to file','value',1);
 
-            VS.hand.GenealBox.hChDirHBox=uix.HBox('Parent',VS.hand.GenealBox.hMainVBox, 'Spacing',4, 'Padding',4);
-            VS.hand.GenealBox.hChangeDirPush=uicontrol('Parent', VS.hand.GenealBox.hChDirHBox, 'Style','push','String','Ch Dir','Callback',@changeSaveDirectory);
-            VS.hand.GenealBox.hChangeDirEdit=uicontrol('Parent', VS.hand.GenealBox.hChDirHBox, 'Style','edit','string','Default dir');
-            set(VS.hand.GenealBox.hChDirHBox, 'Widths',[-1 -7]);
+        VS.hand.GenealBox.hChDirHBox=uix.HBox('Parent',VS.hand.GenealBox.hMainVBox, 'Spacing',4, 'Padding',4);
+        VS.hand.GenealBox.hChangeDirPush=uicontrol('Parent', VS.hand.GenealBox.hChDirHBox, 'Style','push','String','Ch Dir','Callback',@changeSaveDirectory);
+        VS.hand.GenealBox.hChangeDirEdit=uicontrol('Parent', VS.hand.GenealBox.hChDirHBox, 'Style','edit','string','Default dir');
+        set(VS.hand.GenealBox.hChDirHBox, 'Widths',[-1 -7]);
 
-            VS.hand.GenealBox.hEstimateStimDurationPush=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','push', 'String','Estimate stim duration','Callback',@CallbackEstimateStimDurationPush);
-            %VS.hand.GenealBox.hSendEMailEdit=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','edit', 'String','send email','Callback',@CallbackSendEmailEdit);
+        VS.hand.GenealBox.hEstimateStimDurationPush=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','push', 'String','Estimate stim duration','Callback',@CallbackEstimateStimDurationPush);
+        %VS.hand.GenealBox.hSendEMailEdit=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','edit', 'String','send email','Callback',@CallbackSendEmailEdit);
 
-            VS.hand.GenealBox.hInitializeTriggers=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','push', 'String','Init triggers','Callback',@CallbackInitializeTriggersPush);
+        VS.hand.GenealBox.hInitializeTriggers=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','push', 'String','Init triggers','Callback',@CallbackInitializeTriggersPush);
 
-            VS.hand.GenealBox.hScreensPanel = uix.Panel('Parent',VS.hand.GenealBox.hMainVBox, 'Title','PTB Screens');
-            VS.hand.GenealBox.hScreenVBox=uix.VBox('Parent',VS.hand.GenealBox.hScreensPanel, 'Spacing',4, 'Padding',4);
-            VS.hand.GenealBox.hInitializeScreensPush=uicontrol('Parent', VS.hand.GenealBox.hScreenVBox, 'Style','push', 'String','initialize screen','Callback',@CallbackInitializeScreenPush);
-            %PTB screen selection
-            for s=1:numel(VS.par.currentPTBScreen)
-                VS.hand.GenealBox.hPTBScreenPanel(s) = uipanel('Parent', VS.hand.GenealBox.hScreenVBox,'Title',['PTB monitor ' num2str(s)]);
-                VS.hand.GenealBox.hPTBScreenButtongroup(s) = uix.HButtonBox('Parent', VS.hand.GenealBox.hPTBScreenPanel(s));
-                for i=1:numel(VS.par.screens)
-                    VS.hand.GenealBox.ScreenbuttonPTB(s,i) = uicontrol('Parent',VS.hand.GenealBox.hPTBScreenButtongroup(s),...
-                        'Style','radiobutton','String',num2str(VS.par.screens(i)),'Callback',{@CallbackChangeMonitorConfiguration,i,0});
+        VS.hand.GenealBox.hScreensPanel = uix.Panel('Parent',VS.hand.GenealBox.hMainVBox, 'Title','PTB Screens');
+        VS.hand.GenealBox.hScreenVBox=uix.VBox('Parent',VS.hand.GenealBox.hScreensPanel, 'Spacing',4, 'Padding',4);
+        VS.hand.GenealBox.hInitializeScreensPush=uicontrol('Parent', VS.hand.GenealBox.hScreenVBox, 'Style','push', 'String','initialize screen','Callback',@CallbackInitializeScreenPush);
+        
+        % generate Screen selection GUI 
+        for s=1:VS.par.nScreens
+            VS.hand.GenealBox.hPTBScreenPanel(s) = uipanel('Parent', VS.hand.GenealBox.hScreenVBox,'Title',['Monitor #' num2str(s)]);
+            VS.hand.GenealBox.hPTBScreenButtongroup(s) = uix.HButtonBox('Parent', VS.hand.GenealBox.hPTBScreenPanel(s));
+            for buttons=1:3
+                VS.hand.GenealBox.Screenbutton(s,buttons) = uicontrol('Parent',VS.hand.GenealBox.hPTBScreenButtongroup(s),...
+                    'Style','radiobutton','String',VS.par.screenTypes(buttons),'Callback',{@CallbackChangeMonitorConfiguration,s,buttons}); %change from togglebutton to radiobutton if more than one can be selected
+                if VS.par.screenAssignment(s)==buttons
+                    set(VS.hand.GenealBox.Screenbutton(s,buttons),'value',1);
                 end
-                set(VS.hand.GenealBox.ScreenbuttonPTB(s,VS.par.currentPTBScreen(s)),'value',1);
             end
-            %GUI screen selection
-            VS.hand.GenealBox.hGUIScreenPanel = uipanel('Parent', VS.hand.GenealBox.hScreenVBox,'Title','GUI monitor');
-            VS.hand.GenealBox.hGUIScreenButtongroup = uix.HButtonBox('Parent', VS.hand.GenealBox.hGUIScreenPanel);
-            for i=1:numel(VS.par.screens)
-                VS.hand.GenealBox.ScreenbuttonGUI(i) = uicontrol('Parent',VS.hand.GenealBox.hGUIScreenButtongroup,...
-                    'Style','radiobutton','String',num2str(VS.par.screens(i)),'Callback',{@CallbackChangeMonitorConfiguration,0,i});
-            end
-            set(VS.hand.GenealBox.ScreenbuttonGUI(VS.par.currentGUIScreen),'value',1);
-
-            VS.hand.GenealBox.hInteractiveGUIparent = uipanel('Parent', VS.hand.GenealBox.hScreenVBox,'Title','VS interactive panel');
-
-            set(VS.hand.GenealBox.hScreenVBox, 'Heights',[30 40*ones(1,1+numel(VS.par.currentPTBScreen)) -1]);
-            set(VS.hand.GenealBox.hMainVBox, 'Heights',[50 30 30 30 30 -1]);
-
-        else %use uiextras and not uix
-
-            % Arrange the main interface windows
-            VS.hand.hMainWindow = uiextras.HBoxFlex('Parent',VS.hand.hMainFigure, 'Spacing',8);
-            VS.hand.hGenealBox = uiextras.VBox('Parent',VS.hand.hMainWindow, 'Spacing',4, 'Padding',4);
-            VS.hand.hPropertyBox = uiextras.VBox('Parent',VS.hand.hMainWindow, 'Spacing',4, 'Padding',4);
-            set(VS.hand.hMainWindow, 'Sizes',[-1 -1]);
-
-            % Set left box
-            VS.hand.GenealBox.hGeneralBoxPanel = uiextras.Panel('Parent',VS.hand.hGenealBox, 'Title','General');
-            VS.hand.GenealBox.hMainVBox = uiextras.VBox('Parent',VS.hand.GenealBox.hGeneralBoxPanel, 'Spacing',4, 'Padding',4);
-
-            VS.hand.GenealBox.hRunPush=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','push', 'String','Run VS (press Esc continuously to abort)','Callback',@CallbackRunVSPush);
-            %VS.hand.GenealBox.hRunTest=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','push', 'String','Run & Test VS','Callback',@CallbackTestVSPush);
-            VS.hand.GenealBox.hSaveStats=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','checkbox', 'String','Save stats to file','value',1);
-
-            VS.hand.GenealBox.hChDirHBox=uiextras.HBox('Parent',VS.hand.GenealBox.hMainVBox, 'Spacing',4, 'Padding',4);
-            VS.hand.GenealBox.hChangeDirPush=uicontrol('Parent', VS.hand.GenealBox.hChDirHBox, 'Style','push','String','Ch Dir','Callback',@changeSaveDirectory);
-            VS.hand.GenealBox.hChangeDirEdit=uicontrol('Parent', VS.hand.GenealBox.hChDirHBox, 'Style','edit','string','Default dir');
-            set(VS.hand.GenealBox.hChDirHBox, 'Sizes',[-1 -7]);
-
-            VS.hand.GenealBox.hEstimateStimDurationPush=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','push', 'String','Estimate stim duration','Callback',@CallbackEstimateStimDurationPush);
-
-            VS.hand.GenealBox.hInitializeTriggers=uicontrol('Parent', VS.hand.GenealBox.hMainVBox, 'Style','push', 'String','Init triggers','Callback',@CallbackInitializeTriggersPush);
-
-
-            VS.hand.GenealBox.hScreensPanel = uiextras.Panel('Parent',VS.hand.GenealBox.hMainVBox, 'Title','PTB Screens');
-            VS.hand.GenealBox.hScreenVBox=uiextras.VBox('Parent',VS.hand.GenealBox.hScreensPanel, 'Spacing',4, 'Padding',4);
-            VS.hand.GenealBox.hInitializeScreensPush=uicontrol('Parent', VS.hand.GenealBox.hScreenVBox, 'Style','push', 'String','initialize screen','Callback',@CallbackInitializeScreenPush);
-
-            VS.hand.GenealBox.hPTBScreenPanel = uipanel('Parent', VS.hand.GenealBox.hScreenVBox,'Title','PTB monitor');
-            VS.hand.GenealBox.hPTBScreenButtongroup = uiextras.HButtonBox('Parent', VS.hand.GenealBox.hPTBScreenPanel);
-            for i=1:numel(VS.par.screens)
-                VS.hand.GenealBox.ScreenbuttonPTB(i) = uicontrol('Parent',VS.hand.GenealBox.hPTBScreenButtongroup,...
-                    'Style','radiobutton','String',num2str(VS.par.screens(i)),'Callback',{@CallbackChangeMonitorConfiguration,i,0});
-            end
-            set(VS.hand.GenealBox.ScreenbuttonPTB(VS.par.currentPTBScreen),'value',1);
-
-            VS.hand.GenealBox.hGUIScreenPanel = uipanel('Parent', VS.hand.GenealBox.hScreenVBox,'Title','GUI monitor');
-            VS.hand.GenealBox.hGUIScreenButtongroup = uiextras.HButtonBox('Parent', VS.hand.GenealBox.hGUIScreenPanel);
-            for i=1:numel(VS.par.screens)
-                VS.hand.GenealBox.ScreenbuttonGUI(i) = uicontrol('Parent',VS.hand.GenealBox.hGUIScreenButtongroup,...
-                    'Style','radiobutton','String',num2str(VS.par.screens(i)),'Callback',{@CallbackChangeMonitorConfiguration,0,i});
-            end
-            set(VS.hand.GenealBox.ScreenbuttonGUI(VS.par.currentGUIScreen),'value',1);
-
-            VS.hand.GenealBox.hInteractiveGUIparent = uipanel('Parent', VS.hand.GenealBox.hScreenVBox,'Title','VS interactive panel');
-
-            set(VS.hand.GenealBox.hScreenVBox, 'Sizes',[30 40 40 -1]);
-
-            set(VS.hand.GenealBox.hMainVBox, 'Sizes',[50 30 30 30 30 -1]);
         end
+        VS.hand.GenealBox.hInteractiveGUIparent = uipanel('Parent', VS.hand.GenealBox.hScreenVBox,'Title','VS interactive panel');
 
+        set(VS.hand.GenealBox.hScreenVBox, 'Heights',[30 40*ones(1,VS.par.nScreens) -1]);
+        set(VS.hand.GenealBox.hMainVBox, 'Heights',[50 30 30 30 30 -1]);
     end %createGUI
 
     function updateVisualStimBoxGUI()
         childrenOfVisualStimBox=get(VS.hand.hPropertyBox,'Children');
         delete(childrenOfVisualStimBox);
 
-        if VS.par.useNewUIX %use uix for GUI layouts
 
-            VS.hand.PropertyBox.hPropertyBoxPanel = uix.ScrollingPanel('Parent',VS.hand.hPropertyBox); %, 'Title','Visual stimlation object'
-            VS.hand.PropertyBox.hMethodsVBox = uix.VBox('Parent', VS.hand.PropertyBox.hPropertyBoxPanel, 'Padding', 5, 'Spacing', 5);
+        VS.hand.PropertyBox.hPropertyBoxPanel = uix.ScrollingPanel('Parent',VS.hand.hPropertyBox); %, 'Title','Visual stimlation object'
+        VS.hand.PropertyBox.hMethodsVBox = uix.VBox('Parent', VS.hand.PropertyBox.hPropertyBoxPanel, 'Padding', 5, 'Spacing', 5);
 
-            h = 20;
-            %set VS methods box
-            VS.hand.PropertyBox.hMethodsGrid=uix.Grid('Parent', VS.hand.PropertyBox.hMethodsVBox, 'Padding', 5, 'Spacing', 5);
+        h = 20;
+        %set VS methods box
+        VS.hand.PropertyBox.hMethodsGrid=uix.Grid('Parent', VS.hand.PropertyBox.hMethodsVBox, 'Padding', 5, 'Spacing', 5);
 
-            VSOcopy=VS.par.VSO; %For some reason, it is not possible to send a object that is part of a structure as callback
-            if VS.par.nVSOMethods>0
-                for i=1:VS.par.nVSOMethods
-                    if numel(VS.par.VSOMethodDescription)<i
-                        VS.par.VSOMethodDescription{i}='';
-                        disp('Some methods do not contain a description field');
-                    end
-                    VS.hand.PropertyBox.(['h' VS.par.VSOMethod{i} 'Push'])=uicontrol('Parent', VS.hand.PropertyBox.hMethodsGrid, 'Style','push',...
-                        'String',VS.par.VSOMethod{i}(3:end),'TooltipString',VS.par.VSOMethodDescription{i},'HorizontalAlignment','Left');
-                    eval(['set(VS.hand.PropertyBox.h' VS.par.VSOMethod{i} 'Push,''Callback'',@(src,event)' VS.par.VSOMethod{i} '(VSOcopy,src,event,VS.hand.GenealBox.hInteractiveGUIparent));']);
+        VSOcopy=VS.par.VSO; %For some reason, it is not possible to send a object that is part of a structure as callback
+        if VS.par.nVSOMethods>0
+            for i=1:VS.par.nVSOMethods
+                if numel(VS.par.VSOMethodDescription)<i
+                    VS.par.VSOMethodDescription{i}='';
+                    disp('Some methods do not contain a description field');
                 end
-
-                if size(VS.hand.PropertyBox.hMethodsGrid.Widths,1)>1
-                    VS.hand.PropertyBox.hMethodsGrid.Widths = [-2,-1];
-                else
-                    VS.hand.PropertyBox.hMethodsGrid.Widths = [-1];
-                end
-
-                VS.hand.PropertyBox.hMethodsGrid.Heights(:) = h;
-            end
-            VS.hand.PropertyBox.hMethodsVBox.Heights = VS.par.nVSOMethods*h + (VS.par.nVSOMethods+1)*5;
-
-            %set VS property box
-            VS.hand.PropertyBox.hPropertyVBox = uix.VBox('Parent', VS.hand.PropertyBox.hMethodsVBox, 'Padding', 5, 'Spacing', 5);
-            VS.hand.PropertyBox.hPropertyGrid = uix.Grid('Parent', VS.hand.PropertyBox.hPropertyVBox, 'Padding', 5, 'Spacing', 5);
-
-            for i=1:VS.par.nProps
-                VS.hand.PropertyBox.(['h' VS.par.VSOProp{i} 'Txt'])=uicontrol('Parent', VS.hand.PropertyBox.hPropertyGrid, 'Style','text',...
-                    'String',VS.par.VSOProp{i},'TooltipString',VS.par.VSOPropDescription{i},'HorizontalAlignment','Left');
-            end
-            VS.hand.PropertyBox.remarksEdit=uicontrol('Parent',VS.hand.PropertyBox.hPropertyGrid, ...
-                'Style','text','String',VS.par.VSO.remarks); %add the remarks text
-
-            VS.par.VSOPropVal=cell(VS.par.nProps,1);
-            for i=1:VS.par.nProps
-                VS.par.VSOPropVal{i}=VS.par.VSO.(VS.par.VSOProp{i});
-                if isa(VS.par.VSOPropVal{i},'logical')
-                    VS.hand.PropertyBox.(['h' VS.par.VSOProp{i} 'Check'])=uicontrol('Parent',VS.hand.PropertyBox.hPropertyGrid, ...
-                        'Style','checkbox','value',VS.par.VSOPropVal{i},'Callback',{@CallbackChangePropertyValue,1,i});
-                elseif isa(VS.par.VSOPropVal{i},'numeric')
-                    VS.hand.PropertyBox.(['h' VS.par.VSOProp{i} 'Edit'])=uicontrol('Parent',VS.hand.PropertyBox.hPropertyGrid, ...
-                        'Style','edit','String',num2str(VS.par.VSOPropVal{i}),'Callback',{@CallbackChangePropertyValue,2,i});
-                elseif ischar(VS.par.VSOPropVal{i})
-                    VS.hand.PropertyBox.(['h' VS.par.VSOProp{i} 'Edit'])=uicontrol('Parent',VS.hand.PropertyBox.hPropertyGrid, ...
-                        'Style','edit','String',VS.par.VSOPropVal{i},'Callback',{@CallbackChangePropertyValue,3,i});
-                else
-                    error('One of the fields in the visual stimulation object is not a numeric, logical or string');
-                end
-            end
-            VS.hand.PropertyBox.hPropertyGrid.Widths = [-2,-1];
-            VS.hand.PropertyBox.hPropertyGrid.Heights(:) = h;
-            VS.hand.PropertyBox.hPropertyVBox.Heights = VS.par.nProps*h + (VS.par.nProps+1)*5;
-
-            VS.hand.PropertyBox.hPropertyBoxPanel.Heights =  (VS.par.nVSOMethods+VS.par.nProps)*h + (VS.par.nVSOMethods+VS.par.nProps+1)*5;
-
-        else %use uiextras and not uix
-
-            VS.hand.PropertyBox.hPropertyBoxPanel = uiextras.Panel('Parent',VS.hand.hPropertyBox, 'Title','Visual stimulation object');
-            VS.hand.PropertyBox.hPropertyVBox = uiextras.VBox('Parent', VS.hand.PropertyBox.hPropertyBoxPanel, 'Padding', 2, 'Spacing', 5);
-
-            %set VS methods box
-            VS.hand.PropertyBox.hMethodsGrid=uiextras.Grid('Parent', VS.hand.PropertyBox.hPropertyVBox, 'Padding', 5, 'Spacing', 5);
-
-            VSOcopy=VS.par.VSO; %For some reason, it is not possible to send a object that is part of a structure as callback
-
-            if VS.par.nVSOMethods>0
-                for i=1:VS.par.nVSOMethods
-                    VS.hand.PropertyBox.(['h' VS.par.VSOMethod{i} 'Push'])=uicontrol('Parent', VS.hand.PropertyBox.hMethodsGrid, 'Style','push',...
-                        'String',VS.par.VSOMethod{i}(3:end),'TooltipString',VS.par.VSOMethodDescription{i},'HorizontalAlignment','Left');
-                    eval(['set(VS.hand.PropertyBox.h' VS.par.VSOMethod{i} 'Push,''Callback'',@(src,event)' VS.par.VSOMethod{i} '(VSOcopy,src,event,VS.hand.GenealBox.hInteractiveGUIparent));']);
-                end
-                set(VS.hand.PropertyBox.hMethodsGrid,'ColumnSizes',[-1 -1],'RowSizes',25*ones(1,ceil(VS.par.nVSOMethods/2)));
+                VS.hand.PropertyBox.(['h' VS.par.VSOMethod{i} 'Push'])=uicontrol('Parent', VS.hand.PropertyBox.hMethodsGrid, 'Style','push',...
+                    'String',VS.par.VSOMethod{i}(3:end),'TooltipString',VS.par.VSOMethodDescription{i},'HorizontalAlignment','Left');
+                eval(['set(VS.hand.PropertyBox.h' VS.par.VSOMethod{i} 'Push,''Callback'',@(src,event)' VS.par.VSOMethod{i} '(VSOcopy,src,event,VS.hand.GenealBox.hInteractiveGUIparent));']);
             end
 
-            %set VS property box
-            VS.hand.PropertyBox.hPropertyGrid=uiextras.Grid('Parent', VS.hand.PropertyBox.hPropertyVBox, 'Padding', 5, 'Spacing', 5);
-
-            for i=1:VS.par.nProps
-                VS.hand.PropertyBox.(['h' VS.par.VSOProp{i} 'Txt'])=uicontrol('Parent', VS.hand.PropertyBox.hPropertyGrid, 'Style','text',...
-                    'String',VS.par.VSOProp{i},'TooltipString',VS.par.VSOPropDescription{i},'HorizontalAlignment','Left');
+            if size(VS.hand.PropertyBox.hMethodsGrid.Widths,1)>1
+                VS.hand.PropertyBox.hMethodsGrid.Widths = [-2,-1];
+            else
+                VS.hand.PropertyBox.hMethodsGrid.Widths = [-1];
             end
-            VS.hand.PropertyBox.remarksEdit=uicontrol('Parent',VS.hand.PropertyBox.hPropertyGrid, ...
-                'Style','text','String',VS.par.VSO.remarks); %add the remarks text
 
-            VS.par.VSOPropVal=cell(VS.par.nProps,1);
-            for i=1:VS.par.nProps
-                VS.par.VSOPropVal{i}=VS.par.VSO.(VS.par.VSOProp{i});
-                if isa(VS.par.VSOPropVal{i},'logical')
-                    VS.hand.PropertyBox.(['h' VS.par.VSOProp{i} 'Check'])=uicontrol('Parent',VS.hand.PropertyBox.hPropertyGrid, ...
-                        'Style','checkbox','value',VS.par.VSOPropVal{i},'Callback',{@CallbackChangePropertyValue,1,i});
-                elseif isa(VS.par.VSOPropVal{i},'numeric')
-                    VS.hand.PropertyBox.(['h' VS.par.VSOProp{i} 'Edit'])=uicontrol('Parent',VS.hand.PropertyBox.hPropertyGrid, ...
-                        'Style','edit','String',num2str(VS.par.VSOPropVal{i}),'Callback',{@CallbackChangePropertyValue,2,i});
-                elseif ischar(VS.par.VSOPropVal{i})
-                    VS.hand.PropertyBox.(['h' VS.par.VSOProp{i} 'Edit'])=uicontrol('Parent',VS.hand.PropertyBox.hPropertyGrid, ...
-                        'Style','edit','String',VS.par.VSOPropVal{i},'Callback',{@CallbackChangePropertyValue,3,i});
-                else
-                    error('One of the fields in the visual stimulation object is not a numeric, logical or string');
-                end
-            end
-            set(VS.hand.PropertyBox.hPropertyGrid,'ColumnSizes',[-2 -1],'RowSizes',[25*ones(1,VS.par.nProps) 50]);
-
-            set(VS.hand.PropertyBox.hPropertyVBox,'Sizes',[-ceil(VS.par.nVSOMethods/2) -VS.par.nProps]);
+            VS.hand.PropertyBox.hMethodsGrid.Heights(:) = h;
         end
+        VS.hand.PropertyBox.hMethodsVBox.Heights = VS.par.nVSOMethods*h + (VS.par.nVSOMethods+1)*5;
+
+        %set VS property box
+        VS.hand.PropertyBox.hPropertyVBox = uix.VBox('Parent', VS.hand.PropertyBox.hMethodsVBox, 'Padding', 5, 'Spacing', 5);
+        VS.hand.PropertyBox.hPropertyGrid = uix.Grid('Parent', VS.hand.PropertyBox.hPropertyVBox, 'Padding', 5, 'Spacing', 5);
+
+        for i=1:VS.par.nProps
+            VS.hand.PropertyBox.(['h' VS.par.VSOProp{i} 'Txt'])=uicontrol('Parent', VS.hand.PropertyBox.hPropertyGrid, 'Style','text',...
+                'String',VS.par.VSOProp{i},'TooltipString',VS.par.VSOPropDescription{i},'HorizontalAlignment','Left');
+        end
+        VS.hand.PropertyBox.remarksEdit=uicontrol('Parent',VS.hand.PropertyBox.hPropertyGrid, ...
+            'Style','text','String',VS.par.VSO.remarks); %add the remarks text
+
+        VS.par.VSOPropVal=cell(VS.par.nProps,1);
+        for i=1:VS.par.nProps
+            VS.par.VSOPropVal{i}=VS.par.VSO.(VS.par.VSOProp{i});
+            if isa(VS.par.VSOPropVal{i},'logical')
+                VS.hand.PropertyBox.(['h' VS.par.VSOProp{i} 'Check'])=uicontrol('Parent',VS.hand.PropertyBox.hPropertyGrid, ...
+                    'Style','checkbox','value',VS.par.VSOPropVal{i},'Callback',{@CallbackChangePropertyValue,1,i});
+            elseif isa(VS.par.VSOPropVal{i},'numeric')
+                VS.hand.PropertyBox.(['h' VS.par.VSOProp{i} 'Edit'])=uicontrol('Parent',VS.hand.PropertyBox.hPropertyGrid, ...
+                    'Style','edit','String',num2str(VS.par.VSOPropVal{i}),'Callback',{@CallbackChangePropertyValue,2,i});
+            elseif ischar(VS.par.VSOPropVal{i})
+                VS.hand.PropertyBox.(['h' VS.par.VSOProp{i} 'Edit'])=uicontrol('Parent',VS.hand.PropertyBox.hPropertyGrid, ...
+                    'Style','edit','String',VS.par.VSOPropVal{i},'Callback',{@CallbackChangePropertyValue,3,i});
+            else
+                error('One of the fields in the visual stimulation object is not a numeric, logical or string');
+            end
+        end
+        VS.hand.PropertyBox.hPropertyGrid.Widths = [-2,-1];
+        VS.hand.PropertyBox.hPropertyGrid.Heights(:) = h;
+        VS.hand.PropertyBox.hPropertyVBox.Heights = VS.par.nProps*h + (VS.par.nProps+1)*5;
+
+        VS.hand.PropertyBox.hPropertyBoxPanel.Heights =  (VS.par.nVSOMethods+VS.par.nProps)*h + (VS.par.nVSOMethods+VS.par.nProps+1)*5;
+
     end
 
     function closeMainGUIFigure(hObj,event)
