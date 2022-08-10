@@ -1,1 +1,1 @@
-{"VS.par.currentGUIScreen":1,"VS.par.currentPTBScreen":[2,4]}
+{"VS.par.currentGUIScreen":2,"VS.par.currentPTBScreen":[1,3]}

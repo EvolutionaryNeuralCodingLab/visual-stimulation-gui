@@ -5,3 +5,6 @@ PCspecificFiles/GUIConfig.txt
 PCspecificFiles/VSConfig.txt
 *.asv
 PCspecificFiles/GUIConfig.txt
+PCspecificFiles/GUIConfig.txt
+VStim/SecondScreenAsBackgroundStims/tmpVSFile.mat
+PCspecificFiles/GUIConfig.txt
