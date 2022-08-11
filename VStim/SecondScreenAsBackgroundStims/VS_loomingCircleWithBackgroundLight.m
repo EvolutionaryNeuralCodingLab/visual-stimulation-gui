@@ -20,7 +20,7 @@ classdef VS_loomingCircleWithBackgroundLight < VStim
         minimalRealDistance = 5;
         circleWithRandomNoise = false;
         
-        displayWidthHeight = [43 27]; %the width and height of the screen in cm [width height]
+        displayWidthHeight = [12 7]; %the width and height of the screen in cm [width height]
         
         loomScreenNum = 1;
         lightScreenNum = 2;
@@ -115,8 +115,8 @@ classdef VS_loomingCircleWithBackgroundLight < VStim
             %get screen properties
             
             %determine initial position 
-            x0=obj.centerX(1)+obj.initialPositionSequence(1,:).*(obj.rect(obj.loomScreenNum,3)/obj.displayWidthHeight(1));
-            y0=obj.centerY(1)+obj.initialPositionSequence(2,:).*(obj.rect(obj.loomScreenNum,4)/obj.displayWidthHeight(2));
+            x0=obj.centerX(obj.loomScreenNum)+obj.initialPositionSequence(1,:).*(obj.rect(obj.loomScreenNum,3)/obj.displayWidthHeight(1));
+            y0=obj.centerY(obj.loomScreenNum)+obj.initialPositionSequence(2,:).*(obj.rect(obj.loomScreenNum,4)/obj.displayWidthHeight(2));
             
             maxFrames=ceil(obj.time2Collision/obj.ifi(obj.loomScreenNum));
             movementDuration=maxFrames*obj.ifi(obj.loomScreenNum);
@@ -142,7 +142,7 @@ classdef VS_loomingCircleWithBackgroundLight < VStim
             
             %generate mask for noise image
             if obj.circleWithRandomNoise
-                [X,Y]=meshgrid(1:(obj.visualFieldRect(3)-obj.visualFieldRect(1)),1:(obj.visualFieldRect(4)-obj.visualFieldRect(2)));
+                [X,Y]=meshgrid(1:(obj.visualFieldRect(obj.loomScreenNum,3)-obj.visualFieldRect(obj.loomScreenNum,1)),1:(obj.visualFieldRect(obj.loomScreenNum,4)-obj.visualFieldRect(obj.loomScreenNum,2)));
                 X=(X-size(X,1)/2).^2;
                 Y=(Y-size(X,2)/2).^2;
             end
@@ -187,7 +187,7 @@ classdef VS_loomingCircleWithBackgroundLight < VStim
                         Screen('DrawTexture', obj.PTB_win(obj.loomScreenNum), tex, [], [], [], 0, [], tmpCircleColor);
                     else
                         % Update display
-                        Screen('FillOval',obj.PTB_win(obj.loomScreenNum),tmpCircleColor,ovalCoordinates(:,j));
+                        Screen('FillOval',obj.PTB_win(obj.loomScreenNum),tmpCircleColor,ovalCoordinates(:,j),obj.rect(obj.loomScreenNum,4));%the last input is needed due to a strange bug that only occurs when working with 2 screens
                     end
                     obj.applyBackgound(obj.loomScreenNum);  %set background mask and finalize drawing (drawing finished)
                     obj.sendTTL(3,true);

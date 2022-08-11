@@ -179,15 +179,15 @@ classdef (Abstract) VStim < handle
             end
             obj.syncMarkerOn=~obj.syncMarkerOn;
             if obj.syncMarkerOn
-                for i=1:screens
+                for i=screens
                     Screen('DrawTexture',obj.PTB_win(i),obj.masktexOn(i));
                 end
             else
-                for i=1:screens
+                for i=screens
                     Screen('DrawTexture',obj.PTB_win(i),obj.masktexOff(i));
                 end
             end
-            for i=1:screens
+            for i=screens
                 Screen('DrawingFinished', obj.PTB_win(i)); % Tell PTB that no further drawing commands will follow before Screen('Flip')
             end
         end

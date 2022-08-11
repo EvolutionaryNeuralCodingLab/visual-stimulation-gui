@@ -188,6 +188,7 @@ initializeVisualStim;
                 initializePTBScreens;
             end
         else
+            disp('Notice! Screens in simulation mode - no syncing!!!')
             Screen('Preference','SkipSyncTests', 1);
             PTBScreenPosition=round([scrnPos(3)-150 scrnPos(4)-410 scrnPos(3)-50 scrnPos(4)-310]);
             [VS.par.PTB_win,VS.par.screenRect] = Screen('OpenWindow',VS.par.screens(1),[],PTBScreenPosition);
