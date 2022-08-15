@@ -13,6 +13,8 @@ classdef VS_loomingCircleWithBackgroundLight < VStim
         circleInitialDistance = 300;
         time2Collision = 5;
         
+        replaceLoomAreaByFullfieldAngle = false;
+        
         postLoomTime = 2;
         
         eye2ScreenDistance = 25;
@@ -40,6 +42,8 @@ classdef VS_loomingCircleWithBackgroundLight < VStim
         
         circleColorTxt='The luminocity value for the rectangles, if array->show all given contrasts';
         randomizeCircleColorTxt='The luminocity value for the rectangles, if array->show all given contrasts';
+        
+        replaceLoomAreaByFullfieldAngleTxt='Convert the size of the looming circle relative to background to polarization change';
         
         initialXYPositionTxt='The initial position of the looming circle center on the screen [cm, 2 x M, M being number of positions] ';
 
@@ -70,11 +74,13 @@ classdef VS_loomingCircleWithBackgroundLight < VStim
     end
     methods
         function obj=run(obj)
-            if obj.nPTBScreens~=2
-                error('This stimulation can only work with 2 connected stimulation screens!');
-                return;
+            if obj.useScreen2AsLightSource
+                if obj.nPTBScreens~=2
+                    error('A second stimulation screen was not detected, Background illumination will not work! Run again with useScreen2AsLightSource=false');
+                    return;
+                end
             end
-
+            
             %calculate the angles of directions
             nCircleColor=size(obj.circleColor,1);
             nVelocities=numel(obj.circleVelocity);
@@ -169,12 +175,19 @@ classdef VS_loomingCircleWithBackgroundLight < VStim
                 
                 r=obj.eye2ScreenDistance*obj.circleTrueSize/tmpVelocity./t(end:-1:1);
                 
+                if obj.replaceLoomAreaByFullfieldAngle
+                    polarizationAngle=(r./r(end)).^2.*tmpCircleColor;
+                    r(:)=r(end);
+                else
+                    polarizationAngle=tmpCircleColor*ones(1,nFrames);
+                end
                 ovalCoordinates=round([max(obj.rect(obj.loomScreenNum,1),x0(i)-r);max(obj.rect(obj.loomScreenNum,2),y0(i)-r);min(x0(i)+r,obj.rect(obj.loomScreenNum,3));min(obj.rect(obj.loomScreenNum,4),y0(i)+r)]);
+                
                 
                 if obj.circleWithRandomNoise
                     noiseimg=255*rand(obj.visualFieldRect(obj.loomScreenNum,3)-obj.visualFieldRect(obj.loomScreenNum,1),obj.visualFieldRect(obj.loomScreenNum,4)-obj.visualFieldRect(obj.loomScreenNum,2));
                 end
-
+                
                 ttmp=t+GetSecs+obj.ifi(obj.loomScreenNum);
                 obj.sendTTL(2,true);
                 for j=1:nFrames
@@ -187,7 +200,7 @@ classdef VS_loomingCircleWithBackgroundLight < VStim
                         Screen('DrawTexture', obj.PTB_win(obj.loomScreenNum), tex, [], [], [], 0, [], tmpCircleColor);
                     else
                         % Update display
-                        Screen('FillOval',obj.PTB_win(obj.loomScreenNum),tmpCircleColor,ovalCoordinates(:,j),obj.rect(obj.loomScreenNum,4));%the last input is needed due to a strange bug that only occurs when working with 2 screens
+                        Screen('FillOval',obj.PTB_win(obj.loomScreenNum),polarizationAngle(:,j),ovalCoordinates(:,j),obj.rect(obj.loomScreenNum,4));%the last input is needed due to a strange bug that only occurs when working with 2 screens
                     end
                     obj.applyBackgound(obj.loomScreenNum);  %set background mask and finalize drawing (drawing finished)
                     obj.sendTTL(3,true);
@@ -219,14 +232,16 @@ classdef VS_loomingCircleWithBackgroundLight < VStim
                 disp(['Trial ' num2str(i) '/' num2str(obj.nTotTrials)]);
                 WaitSecs(obj.interTrialDelay-(GetSecs-endTrialTime));
             end
-
-            Screen('FillRect',obj.PTB_win(obj.lightScreenNum),[0 0 0],obj.rect(obj.lightScreenNum,:));
-            Screen('DrawingFinished', obj.PTB_win(obj.lightScreenNum));
-            Screen('Flip',obj.PTB_win(obj.lightScreenNum));
-            obj.sendTTL(4,false);
-
+            
+            if obj.useScreen2AsLightSource
+                Screen('FillRect',obj.PTB_win(obj.lightScreenNum),[0 0 0],obj.rect(obj.lightScreenNum,:));
+                Screen('DrawingFinished', obj.PTB_win(obj.lightScreenNum));
+                Screen('Flip',obj.PTB_win(obj.lightScreenNum));
+                obj.sendTTL(4,false);
+            end
+            
             WaitSecs(obj.postSessionDelay);
-
+            
             obj.sendTTL(1,false);
             disp('Session ended');
         end
