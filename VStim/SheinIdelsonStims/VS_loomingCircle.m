@@ -51,6 +51,7 @@ classdef VS_loomingCircle < VStim
         circleColorSequence
         velocitySequence
         initialPositionSequence
+        t
     end
     
     properties (Hidden, SetAccess=protected)
@@ -106,8 +107,8 @@ classdef VS_loomingCircle < VStim
             
             maxFrames=ceil(obj.time2Collision/obj.ifi(obj.selectedScreen));
             movementDuration=maxFrames*obj.ifi(obj.selectedScreen);
-            t=(obj.ifi(obj.selectedScreen):obj.ifi(obj.selectedScreen):movementDuration);
-            nFrames=numel(t);
+            obj.t=(obj.ifi(obj.selectedScreen):obj.ifi(obj.selectedScreen):movementDuration);
+            nFrames=numel(obj.t);
                         
             %run test Flip (usually this first flip is slow and so it is not included in the anlysis
             obj.syncMarkerOn = false; %initialize sync signal
@@ -145,7 +146,7 @@ classdef VS_loomingCircle < VStim
                 tmpCircleColor=obj.circleColorSequence(:,i);
                 tmpVelocity=obj.velocitySequence(i);
                 
-                r=obj.eye2ScreenDistance*obj.circleTrueSize/tmpVelocity./t(end:-1:1);
+                r=obj.eye2ScreenDistance*obj.circleTrueSize/tmpVelocity./obj.t(end:-1:1);
                 
                 ovalCoordinates=round([max(obj.rect(obj.selectedScreen,1),x0(i)-r);max(obj.rect(obj.selectedScreen,2),y0(i)-r);min(x0(i)+r,obj.rect(obj.selectedScreen,3));min(obj.rect(obj.selectedScreen,4),y0(i)+r)]);
                 
@@ -153,7 +154,7 @@ classdef VS_loomingCircle < VStim
                     noiseimg=255*rand(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2));
                 end
 
-                ttmp=t+GetSecs+obj.ifi(obj.selectedScreen);
+                ttmp=obj.t+GetSecs+obj.ifi(obj.selectedScreen);
                 obj.sendTTL(2,true);
                 for j=1:nFrames
                     if obj.circleWithRandomNoise

@@ -64,6 +64,7 @@ classdef VS_loomingCircleWithBackgroundLight < VStim
         circleColorSequence
         velocitySequence
         initialPositionSequence
+        t
     end
     
     properties (Hidden, SetAccess=protected)
@@ -126,8 +127,8 @@ classdef VS_loomingCircleWithBackgroundLight < VStim
             
             maxFrames=ceil(obj.time2Collision/obj.ifi(obj.loomScreenNum));
             movementDuration=maxFrames*obj.ifi(obj.loomScreenNum);
-            t=(obj.ifi(obj.loomScreenNum):obj.ifi(obj.loomScreenNum):movementDuration);
-            nFrames=numel(t);
+            obj.t=(obj.ifi(obj.loomScreenNum):obj.ifi(obj.loomScreenNum):movementDuration);
+            nFrames=numel(obj.t);
                         
             %run test Flip (usually this first flip is slow and so it is not included in the anlysis
             obj.syncMarkerOn = false; %initialize sync signal
@@ -173,7 +174,7 @@ classdef VS_loomingCircleWithBackgroundLight < VStim
                 tmpCircleColor=obj.circleColorSequence(:,i);
                 tmpVelocity=obj.velocitySequence(i);
                 
-                r=obj.eye2ScreenDistance*obj.circleTrueSize/tmpVelocity./t(end:-1:1);
+                r=obj.eye2ScreenDistance*obj.circleTrueSize/tmpVelocity./obj.t(end:-1:1);
                 
                 if obj.replaceLoomAreaByFullfieldAngle
                     polarizationAngle=(r./r(end)).^2.*tmpCircleColor;
@@ -188,7 +189,7 @@ classdef VS_loomingCircleWithBackgroundLight < VStim
                     noiseimg=255*rand(obj.visualFieldRect(obj.loomScreenNum,3)-obj.visualFieldRect(obj.loomScreenNum,1),obj.visualFieldRect(obj.loomScreenNum,4)-obj.visualFieldRect(obj.loomScreenNum,2));
                 end
                 
-                ttmp=t+GetSecs+obj.ifi(obj.loomScreenNum);
+                ttmp=obj.t+GetSecs+obj.ifi(obj.loomScreenNum);
                 obj.sendTTL(2,true);
                 for j=1:nFrames
                     if obj.circleWithRandomNoise
