@@ -3,7 +3,7 @@ classdef (Abstract) VStim < handle
         %all these properties are modifiable by user and will appear in visual stim GUI
         %Place all other variables in hidden properties
         interTrialDelay     = 0.5; %sec
-        trialsPerCategory   = 5;
+        trialsPerCategory   = 1;
         preSessionDelay     = 1;
         postSessionDelay    = 0;
         trialStartTrig      = 'MC=2,Intan=6';
@@ -53,7 +53,7 @@ classdef (Abstract) VStim < handle
         digiNamesNET %only for LabJack - NET arrays for sending trigs names
         digiValuesNET %only for LabJack - NET arrays for sending trig values
     end
-    
+
     properties (Hidden, SetAccess=protected)
         fSep = '\';
         escapeKeyCode   = []; %the key code for ESCAPE
@@ -63,7 +63,6 @@ classdef (Abstract) VStim < handle
         binaryMultiplicator = [1 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768]; %512 1024 2048 4096 8192 16384 32768
         currentBinState     = [false false false false false false false false false false false false false false false false]; %false false false false false false false
         ioObj %parallel port communication object for PC
-        pixelmicronratio = 100 / 13 ; % microns / pixels
         parallelPortNum =  hex2dec('037F')%888; %Parallel port default number
         displaySyncSignal=true;
         pixelConversionFactor = 100/13; %microns per pixel
@@ -72,23 +71,24 @@ classdef (Abstract) VStim < handle
         PTB_win                         %Pointer to PTB window
         whiteIdx                        %white index for screen
         blackIdx                        %black index for screen
-        visualFieldRect                 % the coordinates of the rectanle of visual field [pixel]
         masktexOn                       %the mask texture for visual field with on rectangle on bottom left corner
         masktexOff                      %the mask texture for visual field with off rectangle on bottom left corner
         visualFieldBackgroundTex        %the background texture (circle) for visual field
         errorMsg            = [];       %The message the object returns in case of an error
         simulationMode      = false;    %a switch that is used to prepare visual stimulation without applying the stimulation itself
         lastExcecutedTrial  = 0;        %parameter that keeps the number of the last excecuted trial
-        syncSquareSizePix   = 60;       % the size of the the corder square for syncing stims
-        syncSquareLuminosity= 255;      % The luminocity of the square used for syncing 
+        syncSquareSizePix               % the size of the the corder square for syncing stims
+        syncSquareScreenFraction = 0.07 % the ratio relative to screen height of the the corder square for syncing stims
+        syncSquareLuminosity= 255;      % The luminocity of the square used for syncing
         syncMarkerOn        = false;
-     end
-    
+    end
+
     properties (Hidden)
         trigChNames %the channel order for triggering in parallel port (first channel will be one)
         screenPositionsMatlab;
+        visualFieldRect                 % the coordinates of the rectanle of visual field [pixel]
     end
-    
+
     methods
         %class constractor
         function obj=VStim(PTB_WindowPointer,interactiveGUIhandle)
@@ -99,18 +99,18 @@ classdef (Abstract) VStim < handle
             addlistener(obj,'showOnFullScreen','PostSet',@obj.initializeBackground); %add a listener to visualFieldDiameter, after its changed its size is updated in the changedDataEvent method
             addlistener(obj,'backgroundMaskSteepness','PostSet',@obj.initializeBackground); %add a listener to backgroundMaskSteepness, after its changed its size is updated in the changedDataEvent method
             addlistener(obj,'stimDuration','PostSet',@obj.updateActualStimDuration); %add a listener to stimDuration, after its changed its size is updated in the changedDataEvent method
-            addlistener(obj, 'numPixels', 'PostSet', @(src,event)disp([num2str(obj.numPixels), ' is ', num2str(obj.numPixels*obj.pixelConversionFactor), ' microns'])); 
+            addlistener(obj, 'numPixels', 'PostSet', @(src,event)disp([num2str(obj.numPixels), ' is ', num2str(obj.numPixels*obj.pixelConversionFactor), ' microns']));
             addlistener(obj, 'numMicrons', 'PostSet', @(src,event)disp([num2str(obj.numMicrons), ' is ', num2str(obj.numMicrons/obj.pixelConversionFactor), ' pixels']));
             obj.nPTBScreens=numel(PTB_WindowPointer);
-            
+
             if nargin==2
                 obj.hInteractiveGUI=interactiveGUIhandle;
             end
             obj.fSep=filesep; %get the file separater according to opperating system
-            
+
             % Enable alpha blending with proper blend-function.
             AssertOpenGL;
-            
+
             %define the key code for escape for KbCheck
             KbName('UnifyKeyNames');
             obj.escapeKeyCode = KbName('ESCAPE');
@@ -124,11 +124,11 @@ classdef (Abstract) VStim < handle
             %get the visual stimulation methods
             tmpDir=which('VStim'); %identify main folder
             [obj.mainDir, name, ext] = fileparts(tmpDir);
-            
+
             %initialized TTL signalling
             visualStimGUIMainDir=fileparts(which('visualStimGUI'));
             configFile=[visualStimGUIMainDir filesep 'PCspecificFiles' filesep 'VSConfig.txt']; %JSON encoded
-            
+
             if exist(configFile,'file')
                 fid=fopen(configFile);
                 configText=fscanf(fid,'%s');
@@ -149,7 +149,7 @@ classdef (Abstract) VStim < handle
                 disp('Visual field luminance is not within the possible range of values, please change...');
                 return;
             end
-            
+
             %get general information
             for i=1:obj.nPTBScreens
                 obj.rect(i,:)=Screen('Rect', obj.PTB_win(i));
@@ -158,13 +158,13 @@ classdef (Abstract) VStim < handle
             end
             %calculate optimal stim duration (as an integer number of frames)
             obj=updateActualStimDuration(obj);
-            
+
             %set background luminance
             obj.initializeBackground;
-            
+
             obj.sendTTL(1:4,[false false false false]) %leaving this to make sure ttl's are at zero when stim starts
         end
-        
+
         function estimatedTime=estimateProtocolDuration(obj)
             %estimated time is given is seconds
             obj.simulationMode=true;
@@ -172,7 +172,7 @@ classdef (Abstract) VStim < handle
             estimatedTime=obj.nTotTrials*(mean(obj.actualStimDuration)+mean(obj.interTrialDelay))+obj.preSessionDelay+obj.postSessionDelay;
             obj.simulationMode=false;
         end
-        
+
         function applyBackgound(obj,screens) %apply background and change the synchrony marker state (on/off)
             if nargin==1
                 screens=1:obj.nPTBScreens;
@@ -191,7 +191,7 @@ classdef (Abstract) VStim < handle
                 Screen('DrawingFinished', obj.PTB_win(i)); % Tell PTB that no further drawing commands will follow before Screen('Flip')
             end
         end
-        
+
         function initializeBackground(obj,event,metaProp)
             for i=1:numel(obj.PTB_win)
                 if obj.visualFieldDiameter==0
@@ -204,7 +204,7 @@ classdef (Abstract) VStim < handle
                 obj.centerX(i)=(obj.rect(i,3)+obj.rect(i,1))/2+obj.horizontalShift;
                 obj.centerY(i)=(obj.rect(i,4)+obj.rect(i,2))/2;
 
-                obj.visualFieldRect(i,:)=[obj.centerX(i)-obj.actualVFieldDiameter(i)/2,obj.centerY(i)-obj.actualVFieldDiameter(i)/2,obj.centerX(i)+obj.actualVFieldDiameter(i)/2,obj.centerY(i)+obj.actualVFieldDiameter(i)/2];
+                obj.visualFieldRect(i,:)=round([obj.centerX(i)-obj.actualVFieldDiameter(i)/2,obj.centerY(i)-obj.actualVFieldDiameter(i)/2,obj.centerX(i)+obj.actualVFieldDiameter(i)/2,obj.centerY(i)+obj.actualVFieldDiameter(i)/2]);
                 [x,y]=meshgrid((-obj.actualVFieldDiameter(i)/2):(obj.actualVFieldDiameter(i)/2-1),(-obj.actualVFieldDiameter(i)/2):(obj.actualVFieldDiameter(i)/2-1));
                 %sig = @(x,y) 1 ./ (1 + exp( (sqrt(x.^2 + y.^2 - (obj.actualVFieldDiameter/2-50).^2 )) ));
                 sig = @(x,y) 1-1 ./ ( 1 + exp(sqrt(x.^2 + y.^2) - obj.actualVFieldDiameter(i)/2+1).^obj.backgroundMaskSteepness );
@@ -228,6 +228,8 @@ classdef (Abstract) VStim < handle
 
                 maskblobOn=maskblobOff; %make on mask addition
                 if obj.displaySyncSignal
+                    %calculate the rectangular size as a fraction of the visual field diameter
+                    obj.syncSquareSizePix = round(obj.syncSquareScreenFraction*obj.actualVFieldDiameter);
                     maskblobOn((obj.rect(i,4)-obj.syncSquareSizePix):end,1:obj.syncSquareSizePix,1)=obj.syncSquareLuminosity;
                     maskblobOn((obj.rect(i,4)-obj.syncSquareSizePix):end,1:obj.syncSquareSizePix,2)=obj.whiteIdx;
                     maskblobOff((obj.rect(i,4)-obj.syncSquareSizePix):end,1:obj.syncSquareSizePix,2)=obj.whiteIdx;
@@ -243,7 +245,7 @@ classdef (Abstract) VStim < handle
                 Screen('Flip',obj.PTB_win(i));
             end
         end
-        
+
         function [props]=getProperties(obj)
             props.metaClassData=metaclass(obj);
             props.allPropName={props.metaClassData.PropertyList.Name}';
@@ -263,7 +265,7 @@ classdef (Abstract) VStim < handle
                 props.allPropVal{i,1}=obj.(props.allPropName{i});
             end
         end
-        
+
         function [VSMethods]=getVSControlMethods(obj)
             VSMethods.methodName=methods(obj);
             VSMethods.methodDescription={};
@@ -275,11 +277,11 @@ classdef (Abstract) VStim < handle
                 else
                     VSMethods.publicPropDescription{i,1}='description missing (add a property to the VStim object with the same name as the method but with Txt in the end)';
                 end
-                
+
                 VSMethods.methodName{i,1}=VSMethods.methodName{i};
             end
         end
-        
+
         function initializeTTL(obj)
             %select the digital IO scheme
             try
@@ -346,7 +348,7 @@ classdef (Abstract) VStim < handle
             end
 
         end %function initializeTTL
-        
+
         %if future version, remove TTL functionality to a dedicated class
         function sendTTL(obj,TTLNum,TTLValue)
             %select the digital IO scheme
@@ -364,9 +366,9 @@ classdef (Abstract) VStim < handle
                     for i=1:numel(tmpNames),obj.digiValuesNET(tmpNames(i))=tmpValues(i);end
                     LabJack.LJM.eWriteNames(obj.ioObj, numel(obj.trigChNames), obj.digiNamesNET, obj.digiValuesNET, 0);
             end
-            
+
         end
-        
+
         function obj=updateActualStimDuration(obj,event,metaProp)
             %calculate optimal stim duration (as an integer number of frames)
             for i=1:obj.nPTBScreens
@@ -379,22 +381,22 @@ classdef (Abstract) VStim < handle
             %uses the micron/pixel ratio to convert entered number of
             %pixels to microns
         end
-        
+
         function obj = calcPixels(obj,event)
             %uses the micron/pixel ratio to convert entered number of
             %pixels to microns
         end
-        
-        
+
+
         function outStats=getLastStimStatistics(obj,hFigure)
         end
-        
+
         function outPar=run(obj)
         end
-        
+
         function cleanUp(obj)
         end
-        
+
         function delete(obj)
             if strcmp(obj.selectedDigitalIO,'LabJack-Win')
                 LabJack.LJM.Close(obj.ioObj);
@@ -402,4 +404,5 @@ classdef (Abstract) VStim < handle
         end
         
     end
+
 end %EOF

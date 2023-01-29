@@ -4,18 +4,23 @@ classdef VS_rectNoiseGrid < VStim
         rectGridSize = 4;
         tilingRatio = 1;
         rotation = 0;
+        rectangleAspectRatioOne = true;
     end
     properties (Constant)
         rectLuminosityTxt='The luminocity value for the rectangles, if array->show all given contrasts';
-        rectGridSizeTxt='The size (N x N) of the rectangular grid';
+        rectGridSizeTxt='The size [N x N] (width x height) of the rectangular grid';
         rotationTxt='The angle for visual field rotation (clockwise)';
         tilingRatioTxt='The ratio (0-1) beween the total tile length and field length (e.g. if 0.5 tiles are half the size require for complete tiling)';
+        rectangleAspectRatioOneTxt='Squares will have an aspect ratio of 1 (can reduce number of squares)'
         remarks={'Categories in Flash stimuli are: Luminocity'};
     end
-    properties (SetAccess=protected)
+    properties (Hidden)
         stimSequence
         pos2X
-        pos2Y    
+        pos2Y
+        luminosities
+        pValidRect
+        rectData
     end
     properties (Hidden, SetAccess=protected)
         on_Flip
@@ -28,44 +33,16 @@ classdef VS_rectNoiseGrid < VStim
         off_Miss
     end
     methods
+        
         function obj=run(obj)
-            %calculate the coordinates for the rectangles that fit into the visual space
-            centerX=obj.actualVFieldDiameter/2;
-            centerY=obj.actualVFieldDiameter/2;
-            
-            %calculate the coordinates for the rectangles that fit into the visual space
-            rectSpacing=floor(obj.actualVFieldDiameter/obj.rectGridSize)-1;
-            rectSide=rectSpacing*obj.tilingRatio;
-            edges=floor((rectSpacing-rectSide)/2):rectSpacing:(obj.actualVFieldDiameter-rectSide);
-            edges=floor(edges+((obj.actualVFieldDiameter-(edges(end)+rectSide))-edges(1))/2);
-            [X1,Y1]=meshgrid(edges,edges);
-            X1=X1;
-            Y1=Y1;
-            X2=X1+rectSide-1;
-            Y2=Y1;
-            X3=X1+rectSide-1;
-            Y3=Y1+rectSide-1;
-            X4=X1;
-            Y4=Y1+rectSide-1;
-            pValidRect=find( sqrt((X1-centerX).^2+(Y1-centerY).^2)<=(obj.actualVFieldDiameter/2) &...
-                sqrt((X2-centerX).^2+(Y2-centerY).^2)<=(obj.actualVFieldDiameter/2) &...
-                sqrt((X3-centerX).^2+(Y3-centerY).^2)<=(obj.actualVFieldDiameter/2) &...
-                sqrt((X4-centerX).^2+(Y4-centerY).^2)<=(obj.actualVFieldDiameter/2));
-            
-            nPositions=numel(pValidRect);
+
+            [obj]=calculateRectangularGridPositions(obj);
+
+            %prepare stimulation sequence
+            nPositions=numel(obj.pValidRect);
             nLuminosities=numel(obj.rectLuminosity);
             obj.nTotTrials=obj.trialsPerCategory*nLuminosities;
-            
-            %calculate X and Y position for the valid places
-            obj.pos2X=rem(pValidRect,obj.rectGridSize);
-            obj.pos2X(obj.pos2X==0)=obj.rectGridSize;
-            
-            obj.pos2Y=ceil((pValidRect-0.5)/obj.rectGridSize);
-            
-            obj.pos2X=obj.pos2X-min(obj.pos2X)+1;
-            obj.pos2Y=obj.pos2Y-min(obj.pos2Y)+1;
-            
-            %prepare stimulation sequence
+
             obj.stimSequence=ones(nPositions,1)*reshape(ones(obj.trialsPerCategory,1)*obj.rectLuminosity,[1 obj.nTotTrials]);
             for i=1:nPositions
                 obj.stimSequence(i,:)=obj.stimSequence(i,randperm(obj.nTotTrials));
@@ -83,8 +60,8 @@ classdef VS_rectNoiseGrid < VStim
             pRectIndX=cell(1,nPositions);
             pRectIndY=cell(1,nPositions);
             for i=1:nPositions
-                pRectIndX{i}=X1(pValidRect(i)):X3(pValidRect(i));
-                pRectIndY{i}=Y1(pValidRect(i)):Y3(pValidRect(i));
+                pRectIndX{i}=obj.rectData.X1(obj.pValidRect(i)):obj.rectData.X3(obj.pValidRect(i));
+                pRectIndY{i}=obj.rectData.Y1(obj.pValidRect(i)):obj.rectData.Y3(obj.pValidRect(i));
                 I(pRectIndX{i},pRectIndY{i},i)=1;
                 IBackground(pRectIndX{i},pRectIndY{i})=0;
             end
@@ -154,7 +131,7 @@ classdef VS_rectNoiseGrid < VStim
             end
             obj.stimSequence(:,obj.nTotTrials+1)=[]; %remove the last dummy stimuli
             
-            Screen('FillOval',obj.PTB_win,obj.visualFieldBackgroundLuminance);
+            Screen('FillRect',obj.PTB_win,obj.visualFieldBackgroundLuminance);
             obj.applyBackgound;  %set background mask and finalize drawing (drawing finished)
 
             [obj.on_Flip(i+1),obj.on_Stim(i+1),obj.on_FlipEnd(i+1),obj.on_Miss(i+1)]=Screen('Flip',obj.PTB_win);

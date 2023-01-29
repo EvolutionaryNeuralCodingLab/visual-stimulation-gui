@@ -2,6 +2,7 @@ classdef VS_rectGrid < VStim
     properties (SetAccess=public)
         rectLuminosity = 255; %(L_high-L_low)/L_low
         rectGridSize = 4;
+        rectangleAspectRatioOne = true;
         randomize = true;
         tilingRatio = 1;
         rotation = 0;
@@ -9,12 +10,13 @@ classdef VS_rectGrid < VStim
     properties (Constant)
         rectLuminosityTxt='The luminocity value for the rectangles, if array->show all given contrasts';
         randomizeTxt='Randomize values';
-        rectGridSizeTxt='The size (N x N) of the rectangular grid';
+        rectGridSizeTxt='The size [N x N] (width x height) of the rectangular grid';
         rotationTxt='The angle for visual field rotation (clockwise)';
         tilingRatioTxt='The ratio (0-1) beween the total tile length and field length (e.g. if 0.5 tiles are half the size require for complete tiling)';
+        rectangleAspectRatioOneTxt='Squares will have an aspect ratio of 1 (can reduce number of squares)'
         remarks={'Categories in Flash stimuli are: Luminocity'};
     end
-    properties (SetAccess=protected)
+    properties (Hidden)
         pos2X
         pos2Y
         pos
@@ -33,55 +35,10 @@ classdef VS_rectGrid < VStim
         off_Miss
     end
     methods
-        
-        function obj=calculatePositions(obj)
-            %calculate the coordinates for the rectangles that fit into the visual space
-            centerX=obj.actualVFieldDiameter/2;
-            centerY=obj.actualVFieldDiameter/2;
-            
-            %calculate the coordinates for the rectangles that fit into the visual space
-            rectSpacing=floor(obj.actualVFieldDiameter/obj.rectGridSize)-1;
-            rectSide=rectSpacing*obj.tilingRatio;
-            edges=floor((rectSpacing-rectSide)/2):rectSpacing:(obj.actualVFieldDiameter-rectSide);
-            edges=floor(edges+((obj.actualVFieldDiameter-(edges(end)+rectSide))-edges(1))/2);
-            [X1,Y1]=meshgrid(edges,edges);
-            X1=X1;
-            Y1=Y1;
-            X2=X1+rectSide-1;
-            Y2=Y1;
-            X3=X1+rectSide-1;
-            Y3=Y1+rectSide-1;
-            X4=X1;
-            Y4=Y1+rectSide-1;
-            if ~obj.showOnFullScreen
-            obj.pValidRect=find( sqrt((X1-centerX).^2+(Y1-centerY).^2)<=(obj.actualVFieldDiameter/2) &...
-                sqrt((X2-centerX).^2+(Y2-centerY).^2)<=(obj.actualVFieldDiameter/2) &...
-                sqrt((X3-centerX).^2+(Y3-centerY).^2)<=(obj.actualVFieldDiameter/2) &...
-                sqrt((X4-centerX).^2+(Y4-centerY).^2)<=(obj.actualVFieldDiameter/2));
-            else
-                obj.pValidRect=(1:numel(X1))';
-            end
                 
-            %move data to object
-            obj.rectData.X1=X1;obj.rectData.Y1=Y1;
-            obj.rectData.X2=X2;obj.rectData.Y2=Y2;
-            obj.rectData.X3=X3;obj.rectData.Y3=Y3;
-            obj.rectData.X4=X4;obj.rectData.Y4=Y4;
-            
-            %calculate X and Y position for the valid places
-            obj.pos2X=rem(obj.pValidRect,obj.rectGridSize);
-            obj.pos2X(obj.pos2X==0)=obj.rectGridSize;
-            
-            obj.pos2Y=ceil((obj.pValidRect-0.5)/obj.rectGridSize);
-            
-            obj.pos2X=obj.pos2X-min(obj.pos2X)+1;
-            obj.pos2Y=obj.pos2Y-min(obj.pos2Y)+1;
-            
-        end
-        
         function obj=run(obj)
             
-            obj.calculatePositions;
+            [obj]=calculateRectangularGridPositions(obj);
             
             nPositions=numel(obj.pValidRect);
             nLuminosities=numel(obj.rectLuminosity);
