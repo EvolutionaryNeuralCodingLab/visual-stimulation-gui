@@ -33,7 +33,7 @@ toolboxes = matlab.addons.toolbox.installedToolboxes;
 if isempty(toolboxes)
     installGUILayoutToolBox=1;
 else
-    if ~any(strcmp(toolboxes.Name,'GUI Layout Toolbox'))
+    if ~any(strcmp({toolboxes.Name},'GUI Layout Toolbox'))
         installGUILayoutToolBox=1;
     end
 end
