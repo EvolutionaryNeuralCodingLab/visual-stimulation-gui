@@ -22,7 +22,7 @@ elseif numel(obj.rectGridSize)==2
         rectSpacing(1)=floor(w/obj.rectGridSize(1))-1;
     end
     rectSide=rectSpacing*obj.tilingRatio;
-    edgesY=floor((rectSpacing(1)-rectSide(2))/2):rectSpacing(2):(h-rectSide(2));
+    edgesY=floor((rectSpacing(2)-rectSide(2))/2):rectSpacing(2):(h-rectSide(2));
     edgesY=floor(edgesY+((h-(edgesY(end)+rectSide(2)))-edgesY(1))/2);
     edgesX=floor((rectSpacing(1)-rectSide(1))/2):rectSpacing(1):(w-rectSide(1));
     edgesX=floor(edgesX+((w-(edgesX(end)+rectSide(1)))-edgesX(1))/2);

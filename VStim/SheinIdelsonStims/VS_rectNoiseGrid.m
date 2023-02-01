@@ -8,7 +8,7 @@ classdef VS_rectNoiseGrid < VStim
     end
     properties (Constant)
         rectLuminosityTxt='The luminocity value for the rectangles, if array->show all given contrasts';
-        rectGridSizeTxt='The size [N x N] (width x height) of the rectangular grid';
+        rectGridSizeTxt='The size [N] (size) or [N N] (width x height) of the rectangular grid (enter as 2 numbers with a space)';
         rotationTxt='The angle for visual field rotation (clockwise)';
         tilingRatioTxt='The ratio (0-1) beween the total tile length and field length (e.g. if 0.5 tiles are half the size require for complete tiling)';
         rectangleAspectRatioOneTxt='Squares will have an aspect ratio of 1 (can reduce number of squares)'
@@ -55,16 +55,23 @@ classdef VS_rectNoiseGrid < VStim
             obj.visualFieldBackgroundLuminance=obj.visualFieldBackgroundLuminance;
             
             % Update image buffer for the first time
-            I=zeros(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2),nPositions);
-            IBackground=ones(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2))*obj.visualFieldBackgroundLuminance;
+            if numel(obj.rectGridSize)==1
+                I=zeros(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2),nPositions);
+                IBackground=ones(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2))*obj.visualFieldBackgroundLuminance;
+            else
+                screenNumber=1;
+                I=zeros(obj.rect(screenNumber,3)-obj.rect(screenNumber,1),obj.rect(screenNumber,4)-obj.rect(screenNumber,2),nPositions);
+                IBackground=ones(obj.rect(screenNumber,3)-obj.rect(screenNumber,1),obj.rect(screenNumber,4)-obj.rect(screenNumber,2))*obj.visualFieldBackgroundLuminance;
+            end
             pRectIndX=cell(1,nPositions);
             pRectIndY=cell(1,nPositions);
             for i=1:nPositions
                 pRectIndX{i}=obj.rectData.X1(obj.pValidRect(i)):obj.rectData.X3(obj.pValidRect(i));
                 pRectIndY{i}=obj.rectData.Y1(obj.pValidRect(i)):obj.rectData.Y3(obj.pValidRect(i));
                 I(pRectIndX{i},pRectIndY{i},i)=1;
-                IBackground(pRectIndX{i},pRectIndY{i})=0;
+                IBackground(pRectIndX{i},pRectIndY{i})=0; %remove from background the sum of areas if individual rectangles
             end
+            
             %Pre allocate memory for variables
             obj.on_Flip=nan(1,obj.nTotTrials+1);
             obj.on_Stim=nan(1,obj.nTotTrials+1);
@@ -83,7 +90,7 @@ classdef VS_rectNoiseGrid < VStim
             disp('Session starting');
             
             % Update image buffer for the first time
-            imgTex=Screen('MakeTexture', obj.PTB_win,IBackground+sum(bsxfun(@times,shiftdim(obj.stimSequence(:,1),-2),I),3),obj.rotation);
+            imgTex=Screen('MakeTexture', obj.PTB_win,(IBackground+sum(bsxfun(@times,shiftdim(obj.stimSequence(:,1),-2),I),3))',obj.rotation);
             Screen('DrawTexture',obj.PTB_win,imgTex,[],obj.visualFieldRect,obj.rotation);
             obj.applyBackgound;  %set background mask and finalize drawing (drawing finished)
 
@@ -110,7 +117,7 @@ classdef VS_rectNoiseGrid < VStim
                     obj.off_Miss(i)=0;
                 end
                 % Update image buffer
-                imgTex=Screen('MakeTexture', obj.PTB_win,IBackground+sum(bsxfun(@times,shiftdim(obj.stimSequence(:,i+1),-2),I),3),obj.rotation);
+                imgTex=Screen('MakeTexture', obj.PTB_win,(IBackground+sum(bsxfun(@times,shiftdim(obj.stimSequence(:,i+1),-2),I),3))',obj.rotation);
                 Screen('DrawTexture',obj.PTB_win,imgTex,[],obj.visualFieldRect,obj.rotation);
                 obj.applyBackgound;  %set background mask and finalize drawing (drawing finished)
 
