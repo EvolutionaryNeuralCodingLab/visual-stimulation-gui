@@ -11,12 +11,12 @@ function [frameShifts,upCross,downCross,diffStats,transitionNotFound,T]=frameTim
 %                       T - digital data time stamps
 %                       transitionNotFound - if matching time stamp was not found and original trigger taken instead
 %
-% Last updated : 15/07/15
+% Last updated : 26/04/23
 
 %% default variables
 tStart=0;
-tEnd=dataRecordingObj.recordingDuration_ms;
-Fs=dataRecordingObj.samplingFrequency(1);
+tEnd=[];
+Fs=[];
 
 chunckOverlap=1; %ms
 maxChunck=1000*60*10; %ms
@@ -30,31 +30,23 @@ noisyAnalog = false; % recalculates thresholds for every window - usese a combin
 useDigitalTriggersAsInitialTimeStamps = true;
 extractDiodeElectrodeChannel=false;
 thresholdSelection='none';%'upper','lower','none','manual' - biases the threshold towards one of the clusters identified in test data
-frameRate=1/60;
+frameRate=60;
 inputThreshold=[];
+F=[]; %filter object
 
 plotDiodeTransitions=0;
 T=[]; %digital triggers in the recording
 
-%LPF parameters
-F=filterData(Fs);
-F.lowPassStopCutoff=1/100;
-F.lowPassPassCutoff=1/120;
-F.highPassStopCutoff=0.000625;
-F.highPassPassCutoff=0.00065625;
-F=F.designLowPass;
-
 %% Output list of default variables
 %print out default arguments and values if no inputs are given
-if nargin==0
+if nargin==0 || dataRecordingObj=='?'
     defaultArguments=who;
     for i=1:numel(defaultArguments)
         eval(['defaultArgumentValue=' defaultArguments{i} ';']);
         if numel(defaultArgumentValue)==1
             disp([defaultArguments{i} ' = ' num2str(defaultArgumentValue)]);
         else
-            fprintf([defaultArguments{i} ' = ']);
-            disp(defaultArgumentValue);
+            fprintf([defaultArguments{i} ' = \n']);
         end
     end
     return;
@@ -66,7 +58,24 @@ for i=1:2:length(varargin)
 end
 
 %% Main function
-frameSamples=round(1/frameRate*Fs);
+
+if isempty(tEnd)
+    tEnd=dataRecordingObj.recordingDuration_ms;
+end
+if isempty(Fs)
+    Fs=dataRecordingObj.samplingFrequency(1);
+end
+frameSamples=round(Fs/frameRate);%calculate the number of samples per frame
+
+if isempty(F)
+    %LPF parameters
+    F=filterData(Fs);
+    F.lowPassStopCutoff=1/100;
+    F.lowPassPassCutoff=1/120;
+    F.highPassStopCutoff=0.000625;
+    F.highPassPassCutoff=0.00065625;
+    F=F.designLowPass;
+end
 
 %extract digital triggers times if they were not provided during input
 hWB=waitbar(0,'Getting digital triggers...');
@@ -114,6 +123,7 @@ if numel(dataRecordingObj.analogChannelNumbers)==0
     extractDiodeElectrodeChannel=true;
 end
 
+minTrials4Statistics=10;
 if ~noisyAnalog %if noisy, estimate for each chunk
     %estimate transition points
     if isempty(transition)
@@ -122,15 +132,16 @@ if ~noisyAnalog %if noisy, estimate for each chunk
         if useDigitalTriggersAsInitialTimeStamps
             avgTrialDuration=round(mean(T{trialStartEndDigiTriggerNumbers(2)}-T{trialStartEndDigiTriggerNumbers(1)})*2);
             if extractDiodeElectrodeChannel %in some cases diode is recorded on an electrode channel rather than an analog channel
-                [Atmp]=dataRecordingObj.getData([analogChNum refCh],T{trialStartEndDigiTriggerNumbers(1)}(randi([2, max(11,numel(T{trialStartEndDigiTriggerNumbers(1)}))-1],[1 min(10,numel(T{trialStartEndDigiTriggerNumbers(1)}))-2]))-100,avgTrialDuration);
+                [Atmp]=dataRecordingObj.getData([analogChNum refCh],...
+                    T{trialStartEndDigiTriggerNumbers(1)}(randi([2, max(11,numel(T{trialStartEndDigiTriggerNumbers(1)}))-1],[1 min(minTrials4Statistics,numel(T{trialStartEndDigiTriggerNumbers(1)}))-2]))-100,avgTrialDuration);
             else
-                [Atmp]=dataRecordingObj.getAnalogData([analogChNum refCh],T{trialStartEndDigiTriggerNumbers(1)}(randi([2, max(11,numel(T{trialStartEndDigiTriggerNumbers(1)}))-1],[1 min(10,numel(T{trialStartEndDigiTriggerNumbers(1)}))-2]))-100,avgTrialDuration);
+                [Atmp]=dataRecordingObj.getAnalogData([analogChNum refCh],...
+                    T{trialStartEndDigiTriggerNumbers(1)}(randi([2, max(11,numel(T{trialStartEndDigiTriggerNumbers(1)}))-1],[1 min(minTrials4Statistics,numel(T{trialStartEndDigiTriggerNumbers(1)}))-2]))-100,avgTrialDuration);
             end
         else
             avgTrialDuration=100000;
             if extractDiodeElectrodeChannel %in some cases diode is recorded on an electrode channel rather than an analog channel
                 [Atmp]=dataRecordingObj.getData([analogChNum refCh],round(dataRecordingObj.recordingDuration_ms/2),avgTrialDuration);
-                
             else
                 [Atmp]=dataRecordingObj.getAnalogData([analogChNum refCh],round(dataRecordingObj.recordingDuration_ms/2),avgTrialDuration);
             end

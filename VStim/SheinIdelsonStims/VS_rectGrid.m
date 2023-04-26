@@ -138,7 +138,8 @@ classdef VS_rectGrid < VStim
         function obj=CMShowGrid(obj,srcHandle,eventData,hPanel)
             
             obj.tilingRatio=obj.tilingRatio*0.95;
-            obj.calculatePositions;
+            %obj.calculatePositions;
+            disp('Positions are not recalculated. Check in the future!')
             obj.tilingRatio=obj.tilingRatio/0.95;
             nPositions=numel(obj.pValidRect);
             
