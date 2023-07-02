@@ -8,7 +8,6 @@ classdef (Abstract) VStim < handle
         postSessionDelay    = 0;
         trialStartTrig      = 'MC=2,Intan=6';
         experimenterName = '';
-        stimPixelArea = []; % the area on the screen where all stimulations are presented (default is the full screen).
     end
     properties (SetObservable, AbortSet = true, SetAccess=public)
         visualFieldBackgroundLuminance  = 0; %mean grey value measured by SR and AH the 04-12-19 136
@@ -158,6 +157,7 @@ classdef (Abstract) VStim < handle
                 obj.fps(i)=Screen('FrameRate',obj.PTB_win(i));      % frames per second
                 obj.ifi(i)=Screen('GetFlipInterval', obj.PTB_win(i)); %inter flip interval
             end
+
             %calculate optimal stim duration (as an integer number of frames)
             obj=updateActualStimDuration(obj);
 

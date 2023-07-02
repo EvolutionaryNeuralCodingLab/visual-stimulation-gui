@@ -158,10 +158,15 @@ initializeVisualStim;
 
         for i=1:numel(VS.par.screens)
             screenProps=Screen('Resolution', VS.par.screens(i));
-            VS.par.ScreenWindowWidth(i)=screenProps.width;
-            VS.par.ScreenWindowHeight(i)=screenProps.height;
+            %VS.par.ScreenWindowWidth(i)=screenProps.width; % try to remove - redundant
+            %VS.par.ScreenWindowHeight(i)=screenProps.height; % try to remove - redundant
             VS.par.ScreenFrameRate(i)=screenProps.hz;
             VS.par.ScreenPixelSize(i)=screenProps.pixelSize;
+            VS.par.ScreenPosOriginal(i,:)=Screen('Rect', VS.par.screens(i));
+        end
+
+        if ~isfield(VS.par,'ScreenPos')
+            VS.par.ScreenPos=VS.par.ScreenPosOriginal(find(VS.par.screenAssignment==3,1,'first'),:);
         end
 
         if numel(VS.par.screenAssignment)>VS.par.nScreens
@@ -205,7 +210,13 @@ initializeVisualStim;
     function initializePTBScreens()
         for i=1:VS.par.nScreens
             if VS.par.screenAssignment(i)==3
-                [VS.par.PTB_win(i)] = Screen('OpenWindow',VS.par.screens(i));
+                [VS.par.PTB_win(i)] = Screen('OpenWindow',VS.par.screens(i),[0 0 0]);
+                if ~all(VS.par.ScreenPos==VS.par.ScreenPosOriginal(find(VS.par.screenAssignment==3,1,'first'),:))
+                    glScalingFac=VS.par.ScreenPos([3 4])./VS.par.ScreenPosOriginal(i,[3 4]);
+                    glTranslation=VS.par.ScreenPos([1 2])-VS.par.ScreenPosOriginal(i,[1 2]);
+                    Screen('glTranslate', VS.par.PTB_win(i), glTranslation(1),glTranslation(2));
+                    Screen('glScale', VS.par.PTB_win(i), glScalingFac(1),glScalingFac(2));
+                end
             end
         end
         VS.par.PTB_win=VS.par.PTB_win(find(VS.par.screenAssignment==3)); %keep only active screens to send visual stim object
@@ -334,7 +345,7 @@ initializeVisualStim;
     function CallbackRunVSPush(hObj,event)
         %prepare save file
         saveFile=get(VS.hand.GenealBox.hChangeDirEdit,'string');
-        if strcmp(saveFile,'Default dir')
+        if strcmp(saveFile,'Default dir') || ~get(VS.hand.GenealBox.hSaveStats,'value')
             currentTime=clock;
             timeString=[];
             for i=1:numel(currentTime)-1
@@ -354,11 +365,9 @@ initializeVisualStim;
 
         VSMetaData=VS.par.VSO.getProperties; %get properties
 
-        if get(VS.hand.GenealBox.hSaveStats,'value')
-            save (saveFile,'VSMetaData');
-            set(VS.hand.GenealBox.hChangeDirEdit,'string','Default dir'); %to prevent saving again on the same file name after running
-            fprintf('Stimulation parameters saved to %s\n!',saveFile);
-        end
+        save (saveFile,'VSMetaData');
+        set(VS.hand.GenealBox.hChangeDirEdit,'string','Default dir'); %to prevent saving again on the same file name after running
+        fprintf('Stimulation parameters saved to %s\n!',saveFile);
 
         %send mail
         if VSMetaData.allPropVal{find(ismember(VSMetaData.allPropName, 'sendMail'))}
@@ -415,8 +424,16 @@ initializeVisualStim;
         initializeScreens;
         initializeVisualStim;
     end
+
+    function CallbackInitializePositionEdit(hObj,event)
+        VS.par.ScreenPos(find(VS.par.screenAssignment==3,1,'first'),:)=str2num(hObj.String);
+        initializeScreens;
+        %CallbackInitializeScreenPush;
+    end
+
     function CallbackTestVSPush(hObj,event)
     end
+
     function CallbackChangeMonitorConfiguration(hObj,event,monitorNum,buttonPressed)
         values=set(event.Source.Parent.Children,'Value',false);
         hObj.Value=true;
@@ -549,8 +566,12 @@ initializeVisualStim;
 
         VS.hand.GenealBox.hScreensPanel = uix.Panel('Parent',VS.hand.GenealBox.hMainVBox, 'Title','PTB Screens');
         VS.hand.GenealBox.hScreenVBox=uix.VBox('Parent',VS.hand.GenealBox.hScreensPanel, 'Spacing',4, 'Padding',4);
-        VS.hand.GenealBox.hInitializeScreensPush=uicontrol('Parent', VS.hand.GenealBox.hScreenVBox, 'Style','push', 'String','initialize screen','Callback',@CallbackInitializeScreenPush);
-        
+
+        VS.hand.GenealBox.hScreenInitHBox=uix.HBox('Parent',VS.hand.GenealBox.hScreenVBox, 'Spacing',4, 'Padding',4);
+        VS.hand.GenealBox.hInitializeScreensPush=uicontrol('Parent', VS.hand.GenealBox.hScreenInitHBox, 'Style','push', 'String','initialize screen','Callback',@CallbackInitializeScreenPush);
+        VS.hand.GenealBox.hInitializeScreensPositionEdit=uicontrol('Parent', VS.hand.GenealBox.hScreenInitHBox, 'Style','edit', 'String',num2str(VS.par.ScreenPosOriginal(find(VS.par.screenAssignment==3,1,'first'),:)),'Callback',@CallbackInitializePositionEdit);
+        set(VS.hand.GenealBox.hScreenInitHBox, 'Widths',[-1 -1]);
+
         % generate Screen selection GUI 
         for s=1:VS.par.nScreens
             VS.hand.GenealBox.hPTBScreenPanel(s) = uipanel('Parent', VS.hand.GenealBox.hScreenVBox,'Title',['Monitor #' num2str(s)]);
