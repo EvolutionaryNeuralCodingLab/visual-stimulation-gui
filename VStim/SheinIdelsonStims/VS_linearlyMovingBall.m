@@ -113,6 +113,7 @@ classdef VS_linearlyMovingBall < VStim
                             yV=tmpSpeed*cos(tmpPhi+pi); %direction speed always opposite from start point (180 degees change)
                             movementDuration=D0(l)/tmpSpeed;
                             t=(0:obj.ifi:movementDuration)';
+                            t=t(randperm(numel(t)));
                             obj.nFrames(i,j,k)=numel(t);
   
                             obj.ballTrajectoriesX(i,j,k,1:obj.nFrames(i,j,k))=x0+xV.*t;

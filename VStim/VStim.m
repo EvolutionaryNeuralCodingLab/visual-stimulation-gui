@@ -8,6 +8,7 @@ classdef (Abstract) VStim < handle
         postSessionDelay    = 0;
         trialStartTrig      = 'MC=2,Intan=6';
         experimenterName = '';
+        stimPixelArea = []; % the area on the screen where all stimulations are presented (default is the full screen).
     end
     properties (SetObservable, AbortSet = true, SetAccess=public)
         visualFieldBackgroundLuminance  = 0; %mean grey value measured by SR and AH the 04-12-19 136
@@ -36,6 +37,7 @@ classdef (Abstract) VStim < handle
         postSessionDelayTxt                 = 'The delay after the ending of a recording session [s]';
         backgroundMaskSteepnessTxt          = 'The steepness of the border on the visual field main mask [0 1]';
         numPixelsTxt                        = 'The number of pixels to convert to um';
+        stimPixelAreaTxt                    = 'The area on the screen in pixels where stimulation is presented [left, top, right, bottom]'
     end
     properties (SetAccess=protected)
         mainDir     % main directory of visual stimulation toolbox
