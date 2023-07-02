@@ -29,28 +29,30 @@ classdef VS_testStim < VStim
         function obj=run(obj)
             %draw cross hair
             obj.sendTTL(1,true);
-            T=ones(obj.rect([4 3]))*obj.visualFieldBackgroundLuminance;
-            T(round(obj.centerY-obj.lineWidth/2):round(obj.centerY+obj.lineWidth/2),:)=obj.luminosity;
-            T(:,round(obj.centerX-obj.lineWidth/2):round(obj.centerX+obj.lineWidth/2))=obj.luminosity;
-            %allignment mark
-            T(1:(obj.rect(4))/6,1:obj.lineWidth)=obj.luminosity;
-            T(1:obj.lineWidth,1:(obj.rect(3))/6)=obj.luminosity;
-            
-            [X,Y]=meshgrid(1:obj.rect(3),1:obj.rect(4));
-            radialInterval=(obj.actualVFieldDiameter/2-obj.lineWidth/2)/obj.numberOfBands;
-            radialPos=radialInterval:radialInterval:(obj.actualVFieldDiameter/2);
-            for i=1:obj.numberOfBands
-                p=find(((X-obj.centerX).^2+(Y-obj.centerY).^2)<(radialPos(i)+obj.lineWidth).^2 & ((X-obj.centerX).^2+(Y-obj.centerY).^2)>(radialPos(i)-obj.lineWidth).^2);
-                T(p)=obj.luminosity;
+            for i=1:numel(obj.PTB_win)
+                T{i}=ones(obj.rect(i,[4 3]))*obj.visualFieldBackgroundLuminance;
+                T{i}(round(obj.centerY(i)-obj.lineWidth/2):round(obj.centerY(i)+obj.lineWidth/2),:)=obj.luminosity;
+                T{i}(:,round(obj.centerX(i)-obj.lineWidth/2):round(obj.centerX(i)+obj.lineWidth/2))=obj.luminosity;
+                %allignment mark
+                T{i}(1:(obj.rect(4))/6,1:obj.lineWidth)=obj.luminosity;
+                T{i}(1:obj.lineWidth,1:(obj.rect(3))/6)=obj.luminosity;
+
+                [X,Y]=meshgrid(1:obj.rect(i,3),1:obj.rect(i,4));
+                radialInterval=(obj.actualVFieldDiameter(i)/2-obj.lineWidth/2)/obj.numberOfBands;
+                radialPos=radialInterval:radialInterval:(obj.actualVFieldDiameter(i)/2);
+                for j=1:obj.numberOfBands
+                    p=find(((X-obj.centerX(i)).^2+(Y-obj.centerY(i)).^2)<(radialPos(j)+obj.lineWidth).^2 & ((X-obj.centerX(i)).^2+(Y-obj.centerY(i)).^2)>(radialPos(j)-obj.lineWidth).^2);
+                    T{i}(p)=obj.luminosity;
+                end
             end
-           
+
             if obj.simulationMode
                 disp('No stimulation mode exists for this stimulation');
                 return;
             end
             for i=1:obj.nPTBScreens
-                imgTex=Screen('MakeTexture',obj.PTB_win(i),T,obj.rotation);
-                Screen('DrawTexture',obj.PTB_win(i),imgTex,[],obj.visualFieldRect,obj.rotation);
+                imgTex=Screen('MakeTexture',obj.PTB_win(i),T{i},obj.rotation);
+                Screen('DrawTexture',obj.PTB_win(i),imgTex,[],obj.visualFieldRect(i,:),obj.rotation);
                 Screen('Flip',obj.PTB_win(i));
             end
 

@@ -31,10 +31,10 @@ end
 installGUILayoutToolBox=false;
 toolboxes = matlab.addons.toolbox.installedToolboxes;
 if isempty(toolboxes)
-    installGUILayoutToolBox=true;
+    installGUILayoutToolBox=1;
 else
-    if ~any(strcmp({toolboxes.Name},'GUI Layout Toolbox'))
-        installGUILayoutToolBox=true;
+    if ~any(strcmp(toolboxes.Name,'GUI Layout Toolbox'))
+        installGUILayoutToolBox=1;
     end
 end
 if installGUILayoutToolBox
@@ -165,23 +165,17 @@ initializeVisualStim;
         end
 
         if numel(VS.par.screenAssignment)>VS.par.nScreens
-            msgbox({'Define screen configuration do not match available screens.','Reverting to minimal configuration. Please modify and initialize screens!'},'visual stimulation GUI error','help','replace','Success','modal');
+            msgbox({'Define screen configuration do not match available screens.','Reverting to minimal configuration. Please modify and initialize screens!'},'visual stimulation GUI error','help','replace');
             if VS.par.nScreens==1
-                VS.par.screenAssignment=[3];%3-visual stimulation, 2-gui, 1-nothing
+                VS.par.screenAssignment=[3];
             elseif VS.par.nScreens==2
                 VS.par.screenAssignment=[3,2];
             elseif VS.par.nScreens==3
                 VS.par.screenAssignment=[3,3,1];
             end
         end
-        pGUI=find(VS.par.screenAssignment==2);
-        if isempty(pGUI)
-            pGUI=1;
-        elseif pGUI>1
-            warning('Only one GUI screen can be selected in settings. Using the first screen selected as GUI');
-            VS.par.screenAssignment(pGUI(2:end))=1;
-        end
-        scrnPos=VS.par.screenPositionsMatlab(pGUI,:);
+
+        scrnPos=VS.par.screenPositionsMatlab(VS.par.currentGUIScreen,:);
         VS.par.GUIPosition=abs([scrnPos(1)+(scrnPos(3)-scrnPos(1))*0.01 scrnPos(2)+(scrnPos(4)-scrnPos(2))*0.07 (scrnPos(3)-scrnPos(1))*0.4 (scrnPos(4)-scrnPos(2))*0.8]);
         set(VS.hand.hMainFigure,'position',VS.par.GUIPosition);
 
@@ -194,10 +188,8 @@ initializeVisualStim;
                 initializePTBScreens;
             end
         else
-            disp('Notice! Screens in simulation mode - no syncing!!!')
-            simulationMode=true;
             Screen('Preference','SkipSyncTests', 1);
-            PTBScreenPosition=round([scrnPos(3)-150*9/7 scrnPos(4)-410 scrnPos(3)-50 scrnPos(4)-310]);
+            PTBScreenPosition=round([scrnPos(3)-150 scrnPos(4)-410 scrnPos(3)-50 scrnPos(4)-310]);
             [VS.par.PTB_win,VS.par.screenRect] = Screen('OpenWindow',VS.par.screens(1),[],PTBScreenPosition);
         end
     end
