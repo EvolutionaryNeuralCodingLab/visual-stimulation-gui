@@ -12,7 +12,7 @@ classdef (Abstract) VStim < handle
     properties (SetObservable, AbortSet = true, SetAccess=public)
         visualFieldBackgroundLuminance  = 0; %mean grey value measured by SR and AH the 04-12-19 136
         visualFieldDiameter             = 0; %pixels
-        showOnFullScreen                = true;
+        showOnFullScreen                = 1; %0 - retina, 1- whole screen, 2- rectangle
         DMDcorrectionIntensity          = 0;
         stimDuration                    = 2;
         backgroundMaskSteepness         = 0.2;
@@ -215,17 +215,20 @@ classdef (Abstract) VStim < handle
                 %maskblob(:,:,2)=sig(x,y)*obj.whiteIdx;
 
                 maskblobOff=ones(obj.rect(i,4)-obj.rect(i,2),obj.rect(i,3)-obj.rect(i,1),2) * obj.whiteIdx;
-                maskblobOff(:,:,1)=obj.visualFieldBackgroundLuminance; %obj.blackIdx
-                maskblobOff((obj.visualFieldRect(i,2)+1):obj.visualFieldRect(i,4),(obj.visualFieldRect(i,1)+1):obj.visualFieldRect(i,3),2)=sig(x,y)*obj.whiteIdx;
+                if obj.showOnFullScreen==0
+                    maskblobOff(:,:,1)=obj.visualFieldBackgroundLuminance; %obj.blackIdx
+                    maskblobOff((obj.visualFieldRect(i,2)+1):obj.visualFieldRect(i,4),(obj.visualFieldRect(i,1)+1):obj.visualFieldRect(i,3),2)=sig(x,y)*obj.whiteIdx;
+                elseif obj.showOnFullScreen==1
+                    maskblobOff=ones(obj.rect(i,4)-obj.rect(i,2),obj.rect(i,3)-obj.rect(i,1),2) * obj.blackIdx;
+                    maskblobOff(:,:,1)=obj.blackIdx;
+                elseif obj.showOnFullScreen==2
+                    maskblobOff(:,:,1)=obj.visualFieldBackgroundLuminance; %obj.blackIdx
+                    maskblobOff((obj.visualFieldRect(i,2)+1):obj.visualFieldRect(i,4),(obj.visualFieldRect(i,1)+1):obj.visualFieldRect(i,3),2)=obj.whiteIdx;
+                end
 
                 if obj.DMDcorrectionIntensity
                     [~,maskblobOff(:,:,2)]=meshgrid(1:size(maskblobOff,2),1:size(maskblobOff,1));
                     maskblobOff(:,:,2)=maskblobOff(:,:,2)/max(max(maskblobOff(:,:,2)))*255;
-                end
-
-                if obj.showOnFullScreen==1
-                    maskblobOff=ones(obj.rect(i,4)-obj.rect(i,2),obj.rect(i,3)-obj.rect(i,1),2) * obj.blackIdx;
-                    maskblobOff(:,:,1)=obj.blackIdx;
                 end
 
                 maskblobOn=maskblobOff; %make on mask addition
