@@ -194,11 +194,10 @@ classdef VS_StaticDriftingGrating < VStim
                 end
                 Screen('FillOval',obj.PTB_win,obj.visualFieldBackgroundLuminance);
                 Screen('Flip',obj.PTB_win);
+                obj.applyBackgound;
                 obj.sendTTL(2,false);
-                WaitSecs(obj.interTrialDelay);
                 disp('Trial ended');
                 WaitSecs(obj.interTrialDelay);
-                
             end
             Screen('Flip',obj.PTB_win);
             obj.sendTTL(1,false);
