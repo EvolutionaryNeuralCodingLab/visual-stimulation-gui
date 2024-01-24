@@ -4,12 +4,14 @@ classdef VS_rectGrid < VStim
         rectGridSize = 4;
         rectangleAspectRatioOne = true;
         randomize = true;
-        tilingRatio = 1;
+        tilingRatio = [1,0.5];
         rotation = 0;
+        shape = 'rectangle';
     end
     properties (Constant)
         rectLuminosityTxt='The luminocity value for the rectangles, if array->show all given contrasts';
         randomizeTxt='Randomize values';
+        shapeeTxt='Switch shape circle/rectangle';
         rectGridSizeTxt='The size [N x N] (width x height) of the rectangular grid';
         rotationTxt='The angle for visual field rotation (clockwise)';
         tilingRatioTxt='The ratio (0-1) beween the total tile length and field length (e.g. if 0.5 tiles are half the size require for complete tiling)';
@@ -23,6 +25,7 @@ classdef VS_rectGrid < VStim
         luminosities
         pValidRect
         rectData
+        rectSide
     end
     properties (Hidden, SetAccess=protected)
         on_Flip
@@ -38,43 +41,90 @@ classdef VS_rectGrid < VStim
                 
         function obj=run(obj)
             
-            [obj]=calculateRectangularGridPositions(obj);
             
-            nPositions=numel(obj.pValidRect);
             nLuminosities=numel(obj.rectLuminosity);
-            obj.nTotTrials=obj.trialsPerCategory*nLuminosities*nPositions;
+            nTilingRatios=numel(obj.tilingRatio);
+           
+
+            tilingRatios = obj.tilingRatio; %initialize variable for later restoring tiningRatio
+
+            objects = cell(1,nTilingRatios);
+            rectSides = zeros(1,nTilingRatios);
             
+            for k = 1:nTilingRatios
+                obj.tilingRatio = tilingRatios(k);
+                [obj,rectSide]=calculateRectangularGridPositions(obj); %Calcylate Grid positions for each ratio
+                rectSides(k) = rectSide(1);         
+                objects{k} = obj;
+            end
+  
+
+            obj.tilingRatio = tilingRatios; %Restore variable
+
+            nPositions=numel(obj.pValidRect);
+            obj.nTotTrials=obj.trialsPerCategory*nLuminosities*nPositions*nTilingRatios;
+           
             %calculate sequece of positions and times
             obj.pos=nan(1,obj.nTotTrials);
             obj.luminosities=nan(1,obj.nTotTrials);
             c=1;
             for i=1:nPositions
                 for j=1:nLuminosities
-                    obj.pos( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=i;
-                    obj.luminosities( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=j;
-                    c=c+1;
+                    for k=1:nTilingRatios
+                        obj.pos( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=i;
+                        obj.luminosities( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=j;
+                        obj.tilingRatio( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=k;
+                        c=c+1;
+                    end
                 end
             end
             if obj.randomize
                 randomPermutation=randperm(obj.nTotTrials);
                 obj.pos=obj.pos(randomPermutation);
                 obj.luminosities=obj.luminosities(randomPermutation);
+                obj.tilingRatio=obj.tilingRatio(randomPermutation);
+
             end
             obj.pos=[obj.pos obj.pos(1)]; %add an additional stimulus that will never be shown
             obj.luminosities=[obj.luminosities obj.luminosities(1)]; %add an additional stimulus that will never be shown
-            
+            obj.tilingRatio=[obj.tilingRatio obj.tilingRatio(1)];
+
             %run test Flip (sometimes this first flip is slow and so it is not included in the anlysis
             obj.visualFieldBackgroundLuminance=obj.visualFieldBackgroundLuminance;
-            
+
             % Update image buffer for the first time
-            for i=1:nPositions
-                for j=1:nLuminosities
-                    I=ones(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2)).*obj.visualFieldBackgroundLuminance;
-                    I(obj.rectData.X1(obj.pValidRect(i)):obj.rectData.X3(obj.pValidRect(i)),obj.rectData.Y1(obj.pValidRect(i)):obj.rectData.Y3(obj.pValidRect(i)))=obj.rectLuminosity(j);
-                    imgTex(i,j)=Screen('MakeTexture', obj.PTB_win,I,obj.rotation);
+            if strcmp(obj.shape,'circle')
+                for i=1:nPositions
+                    for j=1:nLuminosities
+                        for k=1:nTilingRatios % on tile ratio
+                            obj = objects{k}; %Change obj properties accordying to tiling ratio
+                            I=ones(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2)).*obj.visualFieldBackgroundLuminance;
+                            x0=round((obj.rectData.X1(obj.pValidRect(i))+obj.rectData.X3(obj.pValidRect(i)))/2);
+                            y0=round((obj.rectData.Y1(obj.pValidRect(i))+obj.rectData.Y3(obj.pValidRect(i)))/2);
+
+                            pX=obj.rectData.X1(obj.pValidRect(i)):obj.rectData.X3(obj.pValidRect(i));
+                            pY=obj.rectData.Y1(obj.pValidRect(i)):obj.rectData.Y3(obj.pValidRect(i));
+                            [Xtmp,Ytmp]=meshgrid(pX,pY);
+                            pV=((Xtmp-x0).^2+(Ytmp-y0).^2)<(rectSides(k)/2).^2;%*obj.tilingRatio(k);
+                            tmpInd=sub2ind(size(I),Xtmp(pV),Ytmp(pV));
+                            I(tmpInd)=obj.rectLuminosity(j);
+                            imgTex(i,j,k)=Screen('MakeTexture', obj.PTB_win,I,obj.rotation);
+                        end
+                    end
+                end
+            elseif strcmp(obj.shape,'rectangle')
+                for i=1:nPositions
+                    for j=1:nLuminosities
+                        for k=1:nTilingRatios
+                            obj = objects{k};
+                            I=ones(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2)).*obj.visualFieldBackgroundLuminance;
+                            I(obj.rectData.X1(obj.pValidRect(i)):obj.rectData.X3(obj.pValidRect(i)),obj.rectData.Y1(obj.pValidRect(i)):obj.rectData.Y3(obj.pValidRect(i)))=obj.rectLuminosity(j);
+                            imgTex(i,j,k)=Screen('MakeTexture', obj.PTB_win,I,obj.rotation);
+                        end
+                    end
                 end
             end
-            
+
             %Pre allocate memory for variables
             obj.on_Flip=nan(1,obj.nTotTrials);
             obj.on_Stim=nan(1,obj.nTotTrials);
@@ -91,10 +141,10 @@ classdef VS_rectGrid < VStim
             end
             save tmpVSFile obj; %temporarily save object in case of a system crash
             disp('Session starting');
-            
-            Screen('DrawTexture',obj.PTB_win,imgTex(obj.pos(1),obj.luminosities(1)),[],obj.visualFieldRect,obj.rotation);
+
+            Screen('DrawTexture',obj.PTB_win,imgTex(obj.pos(1),obj.luminosities(1),obj.tilingRatio(1)),[],obj.visualFieldRect,obj.rotation);
             obj.applyBackgound;
-            
+
             %main loop - start the session
             obj.sendTTL(1,true); %session start trigger (also triggers the recording start)
             WaitSecs(obj.preSessionDelay); %pre session wait time
@@ -111,7 +161,7 @@ classdef VS_rectGrid < VStim
                % pp(uint8(obj.trigChNames(2)),[false false],false,uint8(0),uint64(32784)); %stim offset trigger
                    obj.sendTTL(2,false); 
                 % Update image buffer for the first time
-                Screen('DrawTexture',obj.PTB_win,imgTex(obj.pos(i+1),obj.luminosities(i+1)),[],obj.visualFieldRect,obj.rotation);
+                Screen('DrawTexture',obj.PTB_win,imgTex(obj.pos(i+1),obj.luminosities(i+1),obj.tilingRatio(i+1)),[],obj.visualFieldRect,obj.rotation);
                 obj.applyBackgound;
 
                 disp(['Trial ' num2str(i) '/' num2str(obj.nTotTrials)]);
@@ -128,7 +178,8 @@ classdef VS_rectGrid < VStim
             end
             obj.pos(end)=[]; %remove the last stim which is not shown
             obj.luminosities(end)=[];%remove the last stim which is not shown
-            
+            obj.tilingRatio(end)=[];%
+
             WaitSecs(obj.postSessionDelay);
             obj.sendTTL(1,false); %session end trigger
             disp('Session ended');
