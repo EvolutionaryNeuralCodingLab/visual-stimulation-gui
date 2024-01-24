@@ -29,9 +29,12 @@ maxFrameDeviation=1/60*1000; %ms
 noisyAnalog = false; % recalculates thresholds for every window - usese a combination of digital triggers and analog data to extract locations in noisy cases
 useDigitalTriggersAsInitialTimeStamps = true;
 extractDiodeElectrodeChannel=false;
+minTrials4Statistics=20;
 thresholdSelection='none';%'upper','lower','none','manual' - biases the threshold towards one of the clusters identified in test data
 frameRate=60;
 inputThreshold=[];
+extractSingleFrameShifts=0; %in case stimulation is such that it switches every frame
+lowpass=0; %if to run a low pass filter
 F=[]; %filter object
 
 plotDiodeTransitions=0;
@@ -66,6 +69,13 @@ if isempty(Fs)
     Fs=dataRecordingObj.samplingFrequency(1);
 end
 frameSamples=round(Fs/frameRate);%calculate the number of samples per frame
+
+if extractSingleFrameShifts
+    medLength=frameSamples*0.2;
+else
+    medLength=frameSamples*0.8;
+
+end
 
 if isempty(F)
     %LPF parameters
@@ -123,7 +133,6 @@ if numel(dataRecordingObj.analogChannelNumbers)==0
     extractDiodeElectrodeChannel=true;
 end
 
-minTrials4Statistics=10;
 if ~noisyAnalog %if noisy, estimate for each chunk
     %estimate transition points
     if isempty(transition)
@@ -150,10 +159,11 @@ if ~noisyAnalog %if noisy, estimate for each chunk
             Atmp=Atmp(1,:,:)-Atmp(2,:,:);
         end
         Atmp=permute(Atmp,[3 1 2]);Atmp=Atmp(:);
-        medAtmp = fastmedfilt1d(Atmp,round(frameSamples*0.8));
+        medAtmp = fastmedfilt1d(Atmp,medLength);
         eva = evalclusters(medAtmp,'kmeans','DaviesBouldin','KList',[2:4]);
         [idx,cent] = kmeans(medAtmp,eva.OptimalK,'Replicates',5);
         [cent,sortind]=sort(cent);
+        transitions=(cent(1:end-1)+cent(2:end))/2;
         switch thresholdSelection
             case 'none'
                 transitions=(cent(1:end-1)+cent(2:end))/2;
@@ -165,8 +175,14 @@ if ~noisyAnalog %if noisy, estimate for each chunk
                 transitions=cent(1)+s/2;
             case 'manual'
                 f=figure;plot(medAtmp);hold on;line([1 numel(medAtmp)],[transitions(1) transitions(1)]);
-                pt=ginput(1);
-                transitions=pt(2);
+                title('Press on thresholds (left mouse button) - stop at right mouse button');
+                button=1;
+                while button~=3
+                    [ptx,pty,button]=ginput(1);
+                    if button~=3
+                        transitions(i)=pty;
+                    end
+                end
                 close(f);
             case 'fixed'
                 transitions=inputThreshold;
@@ -191,11 +207,13 @@ for i=1:nChunks
     end
     if ~noisyAnalog
         A=squeeze(A);
-        medA = fastmedfilt1d(A,round(frameSamples*0.8));
+        medA = fastmedfilt1d(A,medLength);
     else
-        Ftmp=F.getFilteredData(A);
-        Aflat=A-Ftmp; %flatten oscilations and drift
-        medA = fastmedfilt1d(Aflat(:),round(frameSamples*2));
+        if lowpass
+            Ftmp=F.getFilteredData(A);
+            Aflat=A-Ftmp; %flatten oscilations and drift
+        end
+        medA = fastmedfilt1d(Aflat(:),medLength*2);
         eva = evalclusters(medA,'kmeans','DaviesBouldin','KList',[2:4]);
         [idx,cent] = kmeans(medA,eva.OptimalK,'Replicates',2);
         cent=sort(cent);
@@ -274,8 +292,8 @@ if plotDiodeTransitions
     end
     hold on;
     
-    hp1=plot(t_ms,A);
-    hp2=plot(t_ms,medA,'g');
+    hp1=plot(t_ms,squeeze(A));
+    hp2=plot(t_ms,squeeze(medA),'g');
     
     upCrossTmp=find(medA(1:end-1)<transitions(1) & medA(2:end)>=transitions(1));
     downCrossTmp=find(medA(1:end-1)>transitions(1) & medA(2:end)<=transitions(1));
