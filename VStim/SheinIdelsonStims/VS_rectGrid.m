@@ -41,11 +41,9 @@ classdef VS_rectGrid < VStim
                 
         function obj=run(obj)
             
-            
             nLuminosities=numel(obj.rectLuminosity);
             nTilingRatios=numel(obj.tilingRatio);
            
-
             tilingRatios = obj.tilingRatio; %initialize variable for later restoring tiningRatio
 
             objects = cell(1,nTilingRatios);

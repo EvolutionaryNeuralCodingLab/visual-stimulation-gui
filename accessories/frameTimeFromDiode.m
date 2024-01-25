@@ -189,7 +189,7 @@ if ~noisyAnalog %if noisy, estimate for each chunk
         end
     end
     %show the threshold separation, this will close at the end of the detection.
-    f=figure;plot(medAtmp);hold on;line([1 numel(medAtmp)],[transitions(1) transitions(1)]);
+    %f=figure;plot(medAtmp);hold on;line([1 numel(medAtmp)],[transitions(1) transitions(1)]);
 end
 
 %main loop
