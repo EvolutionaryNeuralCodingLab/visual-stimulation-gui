@@ -26,6 +26,7 @@ classdef VS_rectGrid < VStim
         pValidRect
         rectData
         rectSide
+        tilingRatios
     end
     properties (Hidden, SetAccess=protected)
         on_Flip
@@ -41,25 +42,11 @@ classdef VS_rectGrid < VStim
                 
         function obj=run(obj)
             
-            
             nLuminosities=numel(obj.rectLuminosity);
             nTilingRatios=numel(obj.tilingRatio);
-           
+            nTilingRatios = numel(obj.tilingRatio); 
 
-            tilingRatios = obj.tilingRatio; %initialize variable for later restoring tiningRatio
-
-            objects = cell(1,nTilingRatios);
-            rectSides = zeros(1,nTilingRatios);
-            
-            for k = 1:nTilingRatios
-                obj.tilingRatio = tilingRatios(k);
-                [obj,rectSide]=calculateRectangularGridPositions(obj); %Calcylate Grid positions for each ratio
-                rectSides(k) = rectSide(1);         
-                objects{k} = obj;
-            end
-  
-
-            obj.tilingRatio = tilingRatios; %Restore variable
+            [obj,rectSide]=calculateRectangularGridPositions(obj); %Calcylate Grid positions for each ratio
 
             nPositions=numel(obj.pValidRect);
             obj.nTotTrials=obj.trialsPerCategory*nLuminosities*nPositions*nTilingRatios;
@@ -67,6 +54,7 @@ classdef VS_rectGrid < VStim
             %calculate sequece of positions and times
             obj.pos=nan(1,obj.nTotTrials);
             obj.luminosities=nan(1,obj.nTotTrials);
+            obj.tilingRatios=nan(1,obj.nTotTrials);
             c=1;
             for i=1:nPositions
                 for j=1:nLuminosities
@@ -82,8 +70,7 @@ classdef VS_rectGrid < VStim
                 randomPermutation=randperm(obj.nTotTrials);
                 obj.pos=obj.pos(randomPermutation);
                 obj.luminosities=obj.luminosities(randomPermutation);
-                obj.tilingRatio=obj.tilingRatio(randomPermutation);
-
+                obj.tilingRatios=obj.tilingRatios(randomPermutation);
             end
             obj.pos=[obj.pos obj.pos(1)]; %add an additional stimulus that will never be shown
             obj.luminosities=[obj.luminosities obj.luminosities(1)]; %add an additional stimulus that will never be shown

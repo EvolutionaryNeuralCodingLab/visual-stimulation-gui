@@ -57,12 +57,14 @@ for i=1:numel(obj.tilingRatio)
     obj.rectData.X4{i}=X4;obj.rectData.Y4{i}=Y4;
 
     if ~obj.showOnFullScreen
-        obj.pValidRect{i}=find( sqrt((X1-centerX).^2+(Y1-centerY).^2)<=(obj.actualVFieldDiameter/2) &...
-            sqrt((X2-centerX).^2+(Y2-centerY).^2)<=(obj.actualVFieldDiameter/2) &...
-            sqrt((X3-centerX).^2+(Y3-centerY).^2)<=(obj.actualVFieldDiameter/2) &...
-            sqrt((X4-centerX).^2+(Y4-centerY).^2)<=(obj.actualVFieldDiameter/2));
-    else
-        obj.pValidRect=(1:numel(X1))';
+        if obj.tilingRatio(i)==max(obj.tilingRatio)
+            obj.pValidRect{i}=find( sqrt((X1-centerX).^2+(Y1-centerY).^2)<=(obj.actualVFieldDiameter/2) &...
+                sqrt((X2-centerX).^2+(Y2-centerY).^2)<=(obj.actualVFieldDiameter/2) &...
+                sqrt((X3-centerX).^2+(Y3-centerY).^2)<=(obj.actualVFieldDiameter/2) &...
+                sqrt((X4-centerX).^2+(Y4-centerY).^2)<=(obj.actualVFieldDiameter/2));
+        else
+            obj.pValidRect=(1:numel(X1))';
+        end
     end
 
 end
