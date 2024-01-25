@@ -1,4 +1,1 @@
-
-{"VS.par.screenAssignment":[3,2,3]}
-{"VS.par.currentGUIScreen":1,"VS.par.currentPTBScreen":2}
-
+{"VS.par.screenAssignment":[3,2,3],"VS.par.currentGUIScreen":1,"VS.par.currentPTBScreen":2}

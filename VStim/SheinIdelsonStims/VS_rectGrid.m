@@ -4,7 +4,7 @@ classdef VS_rectGrid < VStim
         rectGridSize = 4;
         rectangleAspectRatioOne = true;
         randomize = true;
-        tilingRatio = [1,0.5];
+        tilingRatio = [1];
         rotation = 0;
         shape = 'rectangle';
     end
@@ -44,7 +44,6 @@ classdef VS_rectGrid < VStim
             
             nLuminosities=numel(obj.rectLuminosity);
             nTilingRatios=numel(obj.tilingRatio);
-            nTilingRatios = numel(obj.tilingRatio); 
 
             [obj,rectSide]=calculateRectangularGridPositions(obj); %Calcylate Grid positions for each ratio
 
@@ -61,7 +60,7 @@ classdef VS_rectGrid < VStim
                     for k=1:nTilingRatios
                         obj.pos( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=i;
                         obj.luminosities( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=j;
-                        obj.tilingRatio( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=k;
+                        obj.tilingRatios( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=k;
                         c=c+1;
                     end
                 end
@@ -74,7 +73,7 @@ classdef VS_rectGrid < VStim
             end
             obj.pos=[obj.pos obj.pos(1)]; %add an additional stimulus that will never be shown
             obj.luminosities=[obj.luminosities obj.luminosities(1)]; %add an additional stimulus that will never be shown
-            obj.tilingRatio=[obj.tilingRatio obj.tilingRatio(1)];
+            obj.tilingRatios=[obj.tilingRatios obj.tilingRatios(1)];
 
             %run test Flip (sometimes this first flip is slow and so it is not included in the anlysis
             obj.visualFieldBackgroundLuminance=obj.visualFieldBackgroundLuminance;
@@ -84,13 +83,12 @@ classdef VS_rectGrid < VStim
                 for i=1:nPositions
                     for j=1:nLuminosities
                         for k=1:nTilingRatios % on tile ratio
-                            obj = objects{k}; %Change obj properties accordying to tiling ratio
                             I=ones(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2)).*obj.visualFieldBackgroundLuminance;
-                            x0=round((obj.rectData.X1(obj.pValidRect(i))+obj.rectData.X3(obj.pValidRect(i)))/2);
-                            y0=round((obj.rectData.Y1(obj.pValidRect(i))+obj.rectData.Y3(obj.pValidRect(i)))/2);
+                            x0=round((obj.rectData.X1{k}(obj.pValidRect(i))+obj.rectData.X3{k}(obj.pValidRect(i)))/2);
+                            y0=round((obj.rectData.Y1{k}(obj.pValidRect(i))+obj.rectData.Y3{k}(obj.pValidRect(i)))/2);
 
-                            pX=obj.rectData.X1(obj.pValidRect(i)):obj.rectData.X3(obj.pValidRect(i));
-                            pY=obj.rectData.Y1(obj.pValidRect(i)):obj.rectData.Y3(obj.pValidRect(i));
+                            pX=obj.rectData.X1{k}(obj.pValidRect(i)):obj.rectData.X3{k}(obj.pValidRect(i));
+                            pY=obj.rectData.Y1{k}(obj.pValidRect(i)):obj.rectData.Y3{k}(obj.pValidRect(i));
                             [Xtmp,Ytmp]=meshgrid(pX,pY);
                             pV=((Xtmp-x0).^2+(Ytmp-y0).^2)<(rectSides(k)/2).^2;%*obj.tilingRatio(k);
                             tmpInd=sub2ind(size(I),Xtmp(pV),Ytmp(pV));
@@ -103,9 +101,8 @@ classdef VS_rectGrid < VStim
                 for i=1:nPositions
                     for j=1:nLuminosities
                         for k=1:nTilingRatios
-                            obj = objects{k};
                             I=ones(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2)).*obj.visualFieldBackgroundLuminance;
-                            I(obj.rectData.X1(obj.pValidRect(i)):obj.rectData.X3(obj.pValidRect(i)),obj.rectData.Y1(obj.pValidRect(i)):obj.rectData.Y3(obj.pValidRect(i)))=obj.rectLuminosity(j);
+                            I(obj.rectData.X1{k}(obj.pValidRect(i)):obj.rectData.X3{k}(obj.pValidRect(i)),obj.rectData.Y1{k}(obj.pValidRect(i)):obj.rectData.Y3{k}(obj.pValidRect(i)))=obj.rectLuminosity(j);
                             imgTex(i,j,k)=Screen('MakeTexture', obj.PTB_win,I,obj.rotation);
                         end
                     end
@@ -129,7 +126,7 @@ classdef VS_rectGrid < VStim
             save tmpVSFile obj; %temporarily save object in case of a system crash
             disp('Session starting');
 
-            Screen('DrawTexture',obj.PTB_win,imgTex(obj.pos(1),obj.luminosities(1),obj.tilingRatio(1)),[],obj.visualFieldRect,obj.rotation);
+            Screen('DrawTexture',obj.PTB_win,imgTex(obj.pos(1),obj.luminosities(1),obj.tilingRatios(1)),[],obj.visualFieldRect,obj.rotation);
             obj.applyBackgound;
 
             %main loop - start the session
@@ -148,7 +145,7 @@ classdef VS_rectGrid < VStim
                % pp(uint8(obj.trigChNames(2)),[false false],false,uint8(0),uint64(32784)); %stim offset trigger
                    obj.sendTTL(2,false); 
                 % Update image buffer for the first time
-                Screen('DrawTexture',obj.PTB_win,imgTex(obj.pos(i+1),obj.luminosities(i+1),obj.tilingRatio(i+1)),[],obj.visualFieldRect,obj.rotation);
+                Screen('DrawTexture',obj.PTB_win,imgTex(obj.pos(i+1),obj.luminosities(i+1),obj.tilingRatios(i+1)),[],obj.visualFieldRect,obj.rotation);
                 obj.applyBackgound;
 
                 disp(['Trial ' num2str(i) '/' num2str(obj.nTotTrials)]);
@@ -165,7 +162,7 @@ classdef VS_rectGrid < VStim
             end
             obj.pos(end)=[]; %remove the last stim which is not shown
             obj.luminosities(end)=[];%remove the last stim which is not shown
-            obj.tilingRatio(end)=[];%
+            obj.tilingRatios(end)=[];%
 
             WaitSecs(obj.postSessionDelay);
             obj.sendTTL(1,false); %session end trigger
@@ -175,10 +172,10 @@ classdef VS_rectGrid < VStim
         
         function obj=CMShowGrid(obj,srcHandle,eventData,hPanel)
             
-            obj.tilingRatio=obj.tilingRatio*0.95;
+            obj.tilingRatio(1)=obj.tilingRatio(1)*0.95;
             %obj.calculatePositions;
             disp('Positions are not recalculated. Check in the future!')
-            obj.tilingRatio=obj.tilingRatio/0.95;
+            obj.tilingRatio(1)=obj.tilingRatio(1)/0.95;
             nPositions=numel(obj.pValidRect);
             
             Screen('TextFont',obj.PTB_win, 'Courier New');
