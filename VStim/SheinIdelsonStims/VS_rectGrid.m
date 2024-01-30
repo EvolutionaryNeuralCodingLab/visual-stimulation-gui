@@ -45,7 +45,7 @@ classdef VS_rectGrid < VStim
             nLuminosities=numel(obj.rectLuminosity);
             nTilingRatios=numel(obj.tilingRatio);
 
-            [obj,rectSide]=calculateRectangularGridPositions(obj); %Calcylate Grid positions for each ratio
+            [obj]=calculateRectangularGridPositions(obj); %Calcylate Grid positions for each ratio
 
             nPositions=numel(obj.pValidRect);
             obj.nTotTrials=obj.trialsPerCategory*nLuminosities*nPositions*nTilingRatios;
@@ -90,7 +90,7 @@ classdef VS_rectGrid < VStim
                             pX=obj.rectData.X1{k}(obj.pValidRect(i)):obj.rectData.X3{k}(obj.pValidRect(i));
                             pY=obj.rectData.Y1{k}(obj.pValidRect(i)):obj.rectData.Y3{k}(obj.pValidRect(i));
                             [Xtmp,Ytmp]=meshgrid(pX,pY);
-                            pV=((Xtmp-x0).^2+(Ytmp-y0).^2)<(rectSides(k)/2).^2;%*obj.tilingRatio(k);
+                            pV=((Xtmp-x0).^2+(Ytmp-y0).^2)<(obj.rectSide(k)/2).^2;%*obj.tilingRatio(k);
                             tmpInd=sub2ind(size(I),Xtmp(pV),Ytmp(pV));
                             I(tmpInd)=obj.rectLuminosity(j);
                             imgTex(i,j,k)=Screen('MakeTexture', obj.PTB_win,I,obj.rotation);

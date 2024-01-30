@@ -1,5 +1,5 @@
 %divide the screen to rectangles and calculate their coordinates
-function [obj,rectSide]=calculateRectangularGridPositions(obj)
+function [obj]=calculateRectangularGridPositions(obj)
 %calculate the coordinates for the rectangles that fit into the visual space
 centerX=obj.actualVFieldDiameter/2;
 centerY=obj.actualVFieldDiameter/2;
@@ -10,9 +10,9 @@ for i=1:numel(obj.tilingRatio)
     if numel(obj.rectGridSize)==1
         fprintf('Building rectangular grid of %d squares',obj.rectGridSize)
         rectSpacing=floor(h/obj.rectGridSize(1))-1;
-        rectSide(i,:)=[rectSpacing*obj.tilingRatio(i),rectSpacing*obj.tilingRatio(i)];
-        edgesY=floor((rectSpacing-rectSide(i,2))/2):rectSpacing:(h-rectSide(i,2));
-        edgesY=floor(edgesY+((h-(edgesY(end)+rectSide(i,1)))-edgesY(1))/2);
+        obj.rectSide(i,:)=[rectSpacing*obj.tilingRatio(i),rectSpacing*obj.tilingRatio(i)];
+        edgesY=floor((rectSpacing-obj.rectSide(i,2))/2):rectSpacing:(h-obj.rectSide(i,2));
+        edgesY=floor(edgesY+((h-(edgesY(end)+obj.rectSide(i,1)))-edgesY(1))/2);
         edgesX=edgesY;
     elseif numel(obj.rectGridSize)==2
         if numel(obj.tilingRatio)>1
@@ -25,16 +25,16 @@ for i=1:numel(obj.tilingRatio)
         else
             rectSpacing(1)=floor(w/obj.rectGridSize(1))-1;
         end
-        rectSide=rectSpacing*obj.tilingRatio;
-        edgesY=floor((rectSpacing(2)-rectSide(2))/2):rectSpacing(2):(h-rectSide(2));
-        edgesY=floor(edgesY+((h-(edgesY(end)+rectSide(2)))-edgesY(1))/2);
-        edgesX=floor((rectSpacing(1)-rectSide(1))/2):rectSpacing(1):(w-rectSide(1));
-        edgesX=floor(edgesX+((w-(edgesX(end)+rectSide(1)))-edgesX(1))/2);
+        obj.rectSide=rectSpacing*obj.tilingRatio;
+        edgesY=floor((rectSpacing(2)-obj.rectSide(2))/2):rectSpacing(2):(h-obj.rectSide(2));
+        edgesY=floor(edgesY+((h-(edgesY(end)+obj.rectSide(2)))-edgesY(1))/2);
+        edgesX=floor((rectSpacing(1)-rectSide(1))/2):rectSpacing(1):(w-obj.rectSide(1));
+        edgesX=floor(edgesX+((w-(edgesX(end)+obj.rectSide(1)))-edgesX(1))/2);
         if numel(edgesX)~=obj.rectGridSize(1)
             fprintf('Could not fix the requested number of rectangles with the aspect ratio constraints\nReducing number of X rects to %d\n',numel(edgesX));
             obj.rectGridSize(1)=numel(edgesX);
         end
-        %obj.visualFieldRect=[edgesX(1),edgesY(1),edgesX(end)+rectSide(1),edgesY(end)+rectSide(2)];
+        %obj.visualFieldRect=[edgesX(1),edgesY(1),edgesX(end)+obj.rectSide(1),edgesY(end)+obj.rectSide(2)];
     else
         error('rectGridSize can only have between 1-2 elements!')
     end
@@ -43,12 +43,12 @@ for i=1:numel(obj.tilingRatio)
     %figure;rectangle('Position',obj.rect,'edgecolor','r');hold on;plot(X1(:),Y1(:),'.');axis equal;
     X1=X1;
     Y1=Y1;
-    X2=X1+rectSide(i,1)-1;
+    X2=X1+obj.rectSide(i,1)-1;
     Y2=Y1;
-    X3=X1+rectSide(i,1)-1;
-    Y3=Y1+rectSide(i,2)-1;
+    X3=X1+obj.rectSide(i,1)-1;
+    Y3=Y1+obj.rectSide(i,2)-1;
     X4=X1;
-    Y4=Y1+rectSide(i,2)-1;
+    Y4=Y1+obj.rectSide(i,2)-1;
 
     %move data to object
     obj.rectData.X1{i}=X1;obj.rectData.Y1{i}=Y1;
