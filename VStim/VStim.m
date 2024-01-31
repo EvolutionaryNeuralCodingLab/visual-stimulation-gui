@@ -37,6 +37,7 @@ classdef (Abstract) VStim < handle
         backgroundMaskSteepnessTxt          = 'The steepness of the border on the visual field main mask [0 1]';
         numPixelsTxt                        = 'The number of pixels to convert to um';
         stimPixelAreaTxt                    = 'The area on the screen in pixels where stimulation is presented [left, top, right, bottom]'
+        showOnFullScreenTxT                 = 'Visual stimulation screen limits: 0=circular apperture; 1=full screen; 2=rectangular apperture'
     end
     properties (SetAccess=protected)
         mainDir     % main directory of visual stimulation toolbox
@@ -223,7 +224,7 @@ classdef (Abstract) VStim < handle
                     maskblobOff(:,:,1)=obj.blackIdx;
                 elseif obj.showOnFullScreen==2
                     maskblobOff(:,:,1)=obj.visualFieldBackgroundLuminance; %obj.blackIdx
-                    maskblobOff((obj.visualFieldRect(i,2)+1):obj.visualFieldRect(i,4),(obj.visualFieldRect(i,1)+1):obj.visualFieldRect(i,3),2)=obj.whiteIdx;
+                    maskblobOff((obj.visualFieldRect(i,2)+1):obj.visualFieldRect(i,4),(obj.visualFieldRect(i,1)+1):obj.visualFieldRect(i,3),2)=obj.blackIdx;
                 end
 
                 if obj.DMDcorrectionIntensity
