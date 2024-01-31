@@ -78,8 +78,8 @@ classdef VS_linearlyMovingBall < VStim
             end
             
             %run test Flip (sometimes this first flip is slow and so it is not included in the anlysis
-            obj.visualFieldBackgroundLuminance=obj.visualFieldBackgroundLuminance;
-            obj.syncMarkerOn = false; %initialize sync signal
+            %obj.visualFieldBackgroundLuminance=obj.visualFieldBackgroundLuminance;
+            %obj.syncMarkerOn = false; %initialize sync signal
             
             if obj.simulationMode
                 disp('Simulation mode finished running');
@@ -98,6 +98,7 @@ classdef VS_linearlyMovingBall < VStim
             maximalNumberOfFrames=ceil(max(D0./obj.speed)./obj.ifi);
             obj.ballTrajectoriesX=nan(nSpeeds,nOffsets,obj.numberOfDirections,maximalNumberOfFrames);
             obj.ballTrajectoriesY=nan(nSpeeds,nOffsets,obj.numberOfDirections,maximalNumberOfFrames);
+            obj.nFrames=nan(nSpeeds,nOffsets,obj.numberOfDirections);
             for i=1:nSpeeds
                 for j=1:nOffsets
                     for k=1:obj.numberOfDirections
