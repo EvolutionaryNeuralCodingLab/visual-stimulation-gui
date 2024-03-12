@@ -21,6 +21,7 @@ classdef VS_rectNoiseGrid < VStim
         luminosities
         pValidRect
         rectData
+        rectSide
     end
     properties (Hidden, SetAccess=protected)
         on_Flip
@@ -66,8 +67,12 @@ classdef VS_rectNoiseGrid < VStim
             pRectIndX=cell(1,nPositions);
             pRectIndY=cell(1,nPositions);
             for i=1:nPositions
-                pRectIndX{i}=obj.rectData.X1(obj.pValidRect(i)):obj.rectData.X3(obj.pValidRect(i));
-                pRectIndY{i}=obj.rectData.Y1(obj.pValidRect(i)):obj.rectData.Y3(obj.pValidRect(i));
+                X1m = cell2mat(obj.rectData.X1);
+                X3m = cell2mat(obj.rectData.X3);
+                pRectIndX{i}=X1m(obj.pValidRect(i)):X3m(obj.pValidRect(i));
+                Y1m = cell2mat(obj.rectData.Y1);
+                Y3m = cell2mat(obj.rectData.Y3);
+                pRectIndY{i}=Y1m(obj.pValidRect(i)):Y3m(obj.pValidRect(i));
                 I(pRectIndX{i},pRectIndY{i},i)=1;
                 IBackground(pRectIndX{i},pRectIndY{i})=0; %remove from background the sum of areas if individual rectangles
             end
