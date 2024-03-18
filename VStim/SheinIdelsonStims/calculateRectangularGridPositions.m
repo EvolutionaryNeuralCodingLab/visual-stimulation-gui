@@ -39,6 +39,13 @@ for i=1:numel(obj.tilingRatio)
         error('rectGridSize can only have between 1-2 elements!')
     end
 
+    if (edgesX(1)==0)
+        edgesX=edgesX+1;
+    end
+    if (edgesY(1)==0)
+        edgesY=edgesY+1;
+    end
+
     [X1,Y1]=meshgrid(edgesX,edgesY);
     %figure;rectangle('Position',obj.rect,'edgecolor','r');hold on;plot(X1(:),Y1(:),'.');axis equal;
     X1=X1;
