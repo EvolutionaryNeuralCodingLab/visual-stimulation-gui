@@ -99,6 +99,12 @@ classdef VS_rectNoiseGrid < VStim
             Screen('DrawTexture',obj.PTB_win,imgTex,[],obj.visualFieldRect,obj.rotation);
             obj.applyBackgound;  %set background mask and finalize drawing (drawing finished)
 
+            tic;
+            for i=1:obj.nTotTrials
+                imgTex(i)=Screen('MakeTexture', obj.PTB_win,(IBackground+sum(bsxfun(@times,shiftdim(obj.stimSequence(:,i+1),-2),I),3))',obj.rotation);
+            end
+            fprintf('Finished calculating textures in %f seconds',toc);
+
             %main loop - start the session
             obj.sendTTL(1,true); %session start trigger (also triggers the recording start)
             WaitSecs(obj.preSessionDelay); %pre session wait time
@@ -122,8 +128,8 @@ classdef VS_rectNoiseGrid < VStim
                     obj.off_Miss(i)=0;
                 end
                 % Update image buffer
-                imgTex=Screen('MakeTexture', obj.PTB_win,(IBackground+sum(bsxfun(@times,shiftdim(obj.stimSequence(:,i+1),-2),I),3))',obj.rotation);
-                Screen('DrawTexture',obj.PTB_win,imgTex,[],obj.visualFieldRect,obj.rotation);
+                
+                Screen('DrawTexture',obj.PTB_win,imgTex(i),[],obj.visualFieldRect,obj.rotation);
                 obj.applyBackgound;  %set background mask and finalize drawing (drawing finished)
 
                 disp(['Trial ' num2str(i) '/' num2str(obj.nTotTrials)]);
