@@ -11,13 +11,15 @@ classdef VS_linearlyMovingBall < VStim
         orientationFreq=5;
     end
     properties (Constant)
-        ballLuminosityTxt='The luminocity value for the rectangles, if array->show all given contrasts';
+        ballLuminosityTxt='The luminocity value for the rectangles, if using the rectOrient option two luminocities should be provided';
         ballSizeTxt='The size of the moving ball [pixels]';
         numberOfDirectionsTxt='The number of directions to test (directions will be distributed uniformly over 360 degrees)';
         randomizeTxt='Randomize the order of different trials';
         speedTxt='The speed of the moving object [pixels/sec]';
         parallelsOffsetTxt='the offset [pixels] of parallel propagation paths'
         rotationTxt='The rotation angle of the images (for alignment to visual streak';
+        orientationFreqTxt='The number of lines within the moving rectangle'
+        movingObjectTxt='Determines the moving shape - rectOrient / ball / rect';
         remarks={'Categories in stimuli are: speed, offset'};
     end
     properties (SetAccess=protected)
