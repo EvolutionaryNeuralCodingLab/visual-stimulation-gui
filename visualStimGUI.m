@@ -644,7 +644,7 @@ initializeVisualStim;
             elseif isa(VS.par.VSOPropVal{i},'numeric')
                 VS.hand.PropertyBox.(['h' VS.par.VSOProp{i} 'Edit'])=uicontrol('Parent',VS.hand.PropertyBox.hPropertyGrid, ...
                     'Style','edit','String',num2str(VS.par.VSOPropVal{i}),'Callback',{@CallbackChangePropertyValue,2,i});
-            elseif ischar(VS.par.VSOPropVal{i})
+            elseif ischar(VS.par.VSOPropVal{i}) || isstring(VS.par.VSOPropVal{i})
                 VS.hand.PropertyBox.(['h' VS.par.VSOProp{i} 'Edit'])=uicontrol('Parent',VS.hand.PropertyBox.hPropertyGrid, ...
                     'Style','edit','String',VS.par.VSOPropVal{i},'Callback',{@CallbackChangePropertyValue,3,i});
             else

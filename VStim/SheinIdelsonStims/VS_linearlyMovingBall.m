@@ -7,6 +7,7 @@ classdef VS_linearlyMovingBall < VStim
         randomize = true;
         speed = 500; %pixel per second
         rotation = 0;
+        movingObject = "ball";
     end
     properties (Constant)
         ballLuminosityTxt='The luminocity value for the rectangles, if array->show all given contrasts';
@@ -54,15 +55,36 @@ classdef VS_linearlyMovingBall < VStim
             obj.offsets=nan(1,obj.nTotTrials);
             obj.ballSizes=nan(1,obj.nTotTrials);
             c=1;
-            for i=1:nSpeeds
-                for j=1:nOffsets
-                    for k=1:obj.numberOfDirections
-                        for l=1:nBallSizes
-                            obj.speeds( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.speed(i);
-                            obj.offsets( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.parallelsOffset(j);
-                            obj.directions( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=phi(k);
-                            obj.ballSizes( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.ballSize(l);
-                            c=c+1;
+            if obj.movingObject=="rectOrient"
+                obj.orientation=ones(1,obj.nTotTrials);
+                obj.orientation(1:round(obj.nTotTrials)/2)=0;
+                for i=1:nSpeeds
+                    for j=1:nOffsets
+                        for k=1:obj.numberOfDirections
+                            for l=1:nBallSizes
+                                for m=1:2
+                                    obj.speeds( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.speed(i);
+                                    obj.offsets( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.parallelsOffset(j);
+                                    obj.directions( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=phi(k);
+                                    obj.ballSizes( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.ballSize(l);
+                                    obj.orientation( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.orientation(m);
+                                    c=c+1;
+                                end
+                            end
+                        end
+                    end
+                end
+            else
+                for i=1:nSpeeds
+                    for j=1:nOffsets
+                        for k=1:obj.numberOfDirections
+                            for l=1:nBallSizes
+                                obj.speeds( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.speed(i);
+                                obj.offsets( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.parallelsOffset(j);
+                                obj.directions( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=phi(k);
+                                obj.ballSizes( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.ballSize(l);
+                                c=c+1;
+                            end
                         end
                     end
                 end
@@ -75,8 +97,11 @@ classdef VS_linearlyMovingBall < VStim
                 obj.offsets=obj.offsets(randomPermutation);
                 obj.directions=obj.directions(randomPermutation);
                 obj.ballSizes=obj.ballSizes(randomPermutation);
+                if obj.movingObject=="rectOrient"
+                    obj.orientation=obj.orientation(randomPermutation);
+                end
             end
-            
+
             %run test Flip (sometimes this first flip is slow and so it is not included in the anlysis
             obj.visualFieldBackgroundLuminance=obj.visualFieldBackgroundLuminance;
             obj.syncMarkerOn = false; %initialize sync signal
@@ -148,8 +173,17 @@ classdef VS_linearlyMovingBall < VStim
                         obj.ballTrajectoriesX(pTmpSpeed,pTmpOffset,pTmpPhi,j)+obj.ballSizes(i)/2,...
                         obj.ballTrajectoriesY(pTmpSpeed,pTmpOffset,pTmpPhi,j)+obj.ballSizes(i)/2];
                     
-                    Screen('FillOval',obj.PTB_win,obj.ballLuminosity,ballCoordinates);
-                    
+                    if obj.movingObject=="ball"
+                        Screen('FillOval',obj.PTB_win,obj.ballLuminosity,ballCoordinates);
+                    elseif obj.movingObject=="rect"
+                        Screen('FillRect',obj.PTB_win,obj.ballLuminosity,ballCoordinates);
+                    elseif obj.movingObject=="rectOrient"
+                        [xM,yM]=meshgrid(0:obj.ballSizes(i)/freqOrientation:obj.ballSizes(i)+1);
+                        ballCoordinatesGrid=[1;1;1;1]*ballCoordinates;
+                        ballCoordinatesGrid(:,[2 4])=ballCoordinatesGrid(:,[2 2])+[yM(1:4)' yM(2:5)'];
+                        Screen('FillRect',obj.PTB_win,[obj.ballLuminosity 0 obj.ballLuminosity 0]',ballCoordinatesGrid);
+
+                    end
                     obj.applyBackgound;  %set background mask and finalize drawing (drawing finished)
                     
                     obj.sendTTL(3,true); %session start trigger (also triggers the recording start)
