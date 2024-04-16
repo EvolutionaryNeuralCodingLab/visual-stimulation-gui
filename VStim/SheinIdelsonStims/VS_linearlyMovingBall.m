@@ -7,15 +7,19 @@ classdef VS_linearlyMovingBall < VStim
         randomize = true;
         speed = 500; %pixel per second
         rotation = 0;
+        movingObject = "ball";
+        orientationFreq=5;
     end
     properties (Constant)
-        ballLuminosityTxt='The luminocity value for the rectangles, if array->show all given contrasts';
+        ballLuminosityTxt='The luminocity value for the rectangles, if using the rectOrient option two luminocities should be provided';
         ballSizeTxt='The size of the moving ball [pixels]';
         numberOfDirectionsTxt='The number of directions to test (directions will be distributed uniformly over 360 degrees)';
         randomizeTxt='Randomize the order of different trials';
         speedTxt='The speed of the moving object [pixels/sec]';
         parallelsOffsetTxt='the offset [pixels] of parallel propagation paths'
         rotationTxt='The rotation angle of the images (for alignment to visual streak';
+        orientationFreqTxt='The number of lines within the moving rectangle'
+        movingObjectTxt='Determines the moving shape - rectOrient / ball / rect';
         remarks={'Categories in stimuli are: speed, offset'};
     end
     properties (SetAccess=protected)
@@ -23,11 +27,13 @@ classdef VS_linearlyMovingBall < VStim
         directions
         offsets
         ballSizes
+        orientations = [];
         movementDuration
         nFrames
         
         ballTrajectoriesX
         ballTrajectoriesY
+        orientation = [1 2];
     end
     properties (Hidden, SetAccess=protected)
         flip
@@ -35,6 +41,10 @@ classdef VS_linearlyMovingBall < VStim
         flipEnd
         miss
     end
+    properties (Constant)
+        version = 1.0;
+    end
+
     methods
         function obj=run(obj)
             %calculate the angles of directions
@@ -42,7 +52,7 @@ classdef VS_linearlyMovingBall < VStim
             nSpeeds=numel(obj.speed);
             nOffsets=numel(obj.parallelsOffset);
             nBallSizes=numel(obj.ballSize);
-            obj.nTotTrials=obj.trialsPerCategory*nSpeeds*nBallSizes*nOffsets*obj.numberOfDirections;
+            nOrientations = 2;
             
             D0=obj.actualVFieldDiameter+obj.ballSize; %half a ball on each side
             r0=D0/2;
@@ -54,15 +64,37 @@ classdef VS_linearlyMovingBall < VStim
             obj.offsets=nan(1,obj.nTotTrials);
             obj.ballSizes=nan(1,obj.nTotTrials);
             c=1;
-            for i=1:nSpeeds
-                for j=1:nOffsets
-                    for k=1:obj.numberOfDirections
-                        for l=1:nBallSizes
-                            obj.speeds( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.speed(i);
-                            obj.offsets( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.parallelsOffset(j);
-                            obj.directions( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=phi(k);
-                            obj.ballSizes( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.ballSize(l);
-                            c=c+1;
+            if obj.movingObject=="rectOrient"
+                obj.nTotTrials=obj.trialsPerCategory*nSpeeds*nBallSizes*nOffsets*obj.numberOfDirections*nOrientations;
+                obj.orientations=nan(1,obj.nTotTrials);
+                for i=1:nSpeeds
+                    for j=1:nOffsets
+                        for k=1:obj.numberOfDirections
+                            for l=1:nBallSizes
+                                for m=1:2
+                                    obj.speeds( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.speed(i);
+                                    obj.offsets( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.parallelsOffset(j);
+                                    obj.directions( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=phi(k);
+                                    obj.ballSizes( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.ballSize(l);
+                                    obj.orientations( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.orientation(m);
+                                    c=c+1;
+                                end
+                            end
+                        end
+                    end
+                end
+            else
+                obj.nTotTrials=obj.trialsPerCategory*nSpeeds*nBallSizes*nOffsets*obj.numberOfDirections;
+                for i=1:nSpeeds
+                    for j=1:nOffsets
+                        for k=1:obj.numberOfDirections
+                            for l=1:nBallSizes
+                                obj.speeds( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.speed(i);
+                                obj.offsets( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.parallelsOffset(j);
+                                obj.directions( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=phi(k);
+                                obj.ballSizes( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.ballSize(l);
+                                c=c+1;
+                            end
                         end
                     end
                 end
@@ -75,8 +107,11 @@ classdef VS_linearlyMovingBall < VStim
                 obj.offsets=obj.offsets(randomPermutation);
                 obj.directions=obj.directions(randomPermutation);
                 obj.ballSizes=obj.ballSizes(randomPermutation);
+                if obj.movingObject=="rectOrient"
+                    obj.orientations=obj.orientations(randomPermutation);
+                end
             end
-            
+
             %run test Flip (sometimes this first flip is slow and so it is not included in the anlysis
             %obj.visualFieldBackgroundLuminance=obj.visualFieldBackgroundLuminance;
             %obj.syncMarkerOn = false; %initialize sync signal
@@ -85,7 +120,6 @@ classdef VS_linearlyMovingBall < VStim
                 disp('Simulation mode finished running');
                 return;
             end
-            
             maxFrames=ceil(D0./min(obj.speed)/obj.ifi);
             obj.flip=nan(obj.nTotTrials,max(maxFrames));
             obj.stim=nan(obj.nTotTrials,max(maxFrames));
@@ -125,8 +159,22 @@ classdef VS_linearlyMovingBall < VStim
                     end
                 end
             end
-            
-            
+
+            if obj.movingObject=="rectOrient"
+                if numel(obj.ballLuminosity)~=2
+                    disp('For a moving object of type rectOrient ballLuminosity should have two colors');
+                    return;
+                end
+                for k=1:obj.orientationFreq
+                    colorsInRect(:,k)=[obj.ballLuminosity(mod(k,2)+1)]*ones(1,3);
+                end
+            else
+                if numel(obj.ballLuminosity)~=1
+                    disp('For all moving object (except rectOrient), ballLuminosity should have a size of 1');
+                    return;
+                end
+            end
+
             save tmpVSFile obj; %temporarily save object in case of a crash
             disp('Session starting');
 
@@ -137,20 +185,27 @@ classdef VS_linearlyMovingBall < VStim
                 pTmpSpeed=find(obj.speed==obj.speeds(i));
                 pTmpOffset=find(obj.parallelsOffset==obj.offsets(i));
                 pTmpPhi=find(phi==obj.directions(i));
-                
+
                 t=(1:obj.nFrames(pTmpSpeed,pTmpOffset,pTmpPhi))*obj.ifi+GetSecs;
-                
+                orientationSteps=0:obj.ballSizes(i)/obj.orientationFreq:obj.ballSizes(i)+1;
+
+                ballCoordinates=squeeze([obj.ballTrajectoriesX(pTmpSpeed,pTmpOffset,pTmpPhi,:)-obj.ballSizes(i)/2,...
+                    obj.ballTrajectoriesY(pTmpSpeed,pTmpOffset,pTmpPhi,:)-obj.ballSizes(i)/2,...
+                    obj.ballTrajectoriesX(pTmpSpeed,pTmpOffset,pTmpPhi,:)+obj.ballSizes(i)/2,...
+                    obj.ballTrajectoriesY(pTmpSpeed,pTmpOffset,pTmpPhi,:)+obj.ballSizes(i)/2])';
+
                 obj.sendTTL(2,true); %session start trigger (also triggers the recording start)
                 for j=1:obj.nFrames(pTmpSpeed,pTmpOffset,pTmpPhi)
                     % Update display
-                    
-                    ballCoordinates=[obj.ballTrajectoriesX(pTmpSpeed,pTmpOffset,pTmpPhi,j)-obj.ballSizes(i)/2,...
-                        obj.ballTrajectoriesY(pTmpSpeed,pTmpOffset,pTmpPhi,j)-obj.ballSizes(i)/2,...
-                        obj.ballTrajectoriesX(pTmpSpeed,pTmpOffset,pTmpPhi,j)+obj.ballSizes(i)/2,...
-                        obj.ballTrajectoriesY(pTmpSpeed,pTmpOffset,pTmpPhi,j)+obj.ballSizes(i)/2];
-                    
-                    Screen('FillOval',obj.PTB_win,obj.ballLuminosity,ballCoordinates);
-                    
+                    if obj.movingObject=="ball"
+                        Screen('FillOval',obj.PTB_win,obj.ballLuminosity,ballCoordinates(j,:));
+                    elseif obj.movingObject=="rect"
+                        Screen('FillRect',obj.PTB_win,obj.ballLuminosity,ballCoordinates(j,:));
+                    elseif obj.movingObject=="rectOrient"
+                        ballCoordinatesGrid=ones(obj.orientationFreq,1)*ballCoordinates(j,:);
+                        ballCoordinatesGrid(:,[obj.orientations(i) obj.orientations(i)+2])=ballCoordinatesGrid(:,obj.orientations(i))+[orientationSteps(1:end-1)' orientationSteps(2:end)'];
+                        Screen('FillRect',obj.PTB_win,colorsInRect,ballCoordinatesGrid');
+                    end
                     obj.applyBackgound;  %set background mask and finalize drawing (drawing finished)
                     
                     obj.sendTTL(3,true); %session start trigger (also triggers the recording start)
