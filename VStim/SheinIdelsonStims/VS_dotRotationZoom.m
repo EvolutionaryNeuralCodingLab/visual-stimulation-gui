@@ -41,7 +41,7 @@ classdef VS_dotRotationZoom < VStim
             
             obj.nTotTrials=obj.trialsPerCategory*nSpeeds*nRotationZoomModes*nDirections;
             
-            D0=obj.actualVFieldDiameter; %half a ball on each side
+            D0=min(obj.actualVFieldDiameter); %half a ball on each side
             r0=D0/2;
             
             %calculate sequece of positions and times
@@ -67,24 +67,22 @@ classdef VS_dotRotationZoom < VStim
                 obj.directions=obj.directions(randomPermutation);
             end
             
-            %run test Flip (usually this first flip is slow and so it is not included in the anlysis
+            %run test Flip (sometimes this first flip is slow and so it is not included in the anlysis
+            obj.visualFieldBackgroundLuminance=obj.visualFieldBackgroundLuminance;
             obj.syncMarkerOn = false; %initialize sync signal
-            Screen('FillRect',obj.PTB_win,obj.visualFieldBackgroundLuminance);
-            Screen('DrawTexture',obj.PTB_win,obj.masktexOff);
-            Screen('Flip',obj.PTB_win);
             
             if obj.simulationMode
                 disp('Simulation mode finished running');
                 return;
             end
             
-            nFrames = ceil(obj.stimDuration/obj.ifi); % number of animation frames in loop
+            nFrames = ceil(obj.stimDuration/obj.ifi(1)); % number of animation frames in loop
             obj.flip=nan(obj.nTotTrials,nFrames);
             obj.stim=nan(obj.nTotTrials,nFrames);
             obj.flipEnd=nan(obj.nTotTrials,nFrames);
             obj.miss=nan(obj.nTotTrials,nFrames);
             
-            tFrame=(0:obj.ifi:(obj.stimDuration+obj.ifi))';
+            tFrame=(0:obj.ifi:(obj.stimDuration+obj.ifi(1)))';
             
             save tmpVSFile obj; %temporarily save object in case of a crash
             disp('Session starting');
@@ -98,7 +96,7 @@ classdef VS_dotRotationZoom < VStim
                 tmpRotZoom=obj.rotateZoom(i);
                 
                 mdir = tmpDir*ones(obj.nDots,1);
-                pfs = tmpSpeed * obj.ifi;                            % dot speed (pixels/frame)
+                pfs = tmpSpeed * obj.ifi(1);                            % dot speed (pixels/frame)
                 
                 % ---------------------------------------
                 % initialize dot positions and velocities
@@ -127,7 +125,7 @@ classdef VS_dotRotationZoom < VStim
                 
                 for j=1:nFrames
                     % Update display
-                    Screen('DrawDots', obj.PTB_win, xymatrix, obj.dotSize, obj.dotLuminosity, [obj.centerX,obj.centerY] ,1);  % change 1 to 0 to draw square dots
+                    Screen('DrawDots', obj.PTB_win(1), xymatrix, obj.dotSize, obj.dotLuminosity, [obj.centerX,obj.centerY] ,1);  % change 1 to 0 to draw square dots
                     obj.applyBackgound;  %set background mask and finalize drawing (drawing finished)
                     
                     if tmpRotZoom
