@@ -1,28 +1,29 @@
-classdef VS_dotRotationZoom < VStim
+classdef VS_linearlyMovingBouncingDots < VStim
     properties (SetAccess=public)
-        dotLuminosity = 255; %(L_high-L_low)/L_low
+        luminosities = 255; %(L_high-L_low)/L_low
         randomize = true;
-        speed = 100; %pixel per second
-        nDots= 1000 % number of dots
+        speeds = 100; %pixel per second
+        dotsNumbers= 1000 % number of dots
         dotSize= 5 % width of dot (pixels)
-        rotateDots = 1; %rotate (or zoom)
-        rotationZoomDirection = 1; %the direction of rotations/zoom
+        waitFromOnset = 1; %time to wait between dots appearance and dot movement
     end
     properties (Constant)
-        dotLuminosityTxt='The luminocity value for the rectangles, if array->show all given contrasts';
+        luminositiesTxt='The luminocity value for the rectangles, if array->show all given contrasts';
         dotSizeTxt='The size of the dots [pixels]';
         rotateDotsTxt='True/false/[true false] - whether to rotate, zoom or both';
         randomizeTxt='Randomize the order of different trials';
-        nDotsTxt='The number of dots to be shown';
-        speedTxt='The speed of the moving dots [pixels/sec]';
-        rotationZoomDirectionTxt='[1/-1] the direction of rotation/zoom'
+        dotsNumbersTxt='The number of dots to be shown, if array->show all given dot numbers';
+        speedTxt='The speed of the moving dots [pixels/sec], if array->show all given speeds';
+        waitFromOnsetTxt='The time [s] to wait from presentation of dots to start of motion'
         remarks={'Categories in stimuli are: speed, rotateDots, rotationZoomDirection'};
     end
     properties (SetAccess=protected)
-        speeds
-        rotateZoom
-        directions
-        f_kill=0.05;
+        allSpeeds
+        allLuminocities
+        allDotNumbers
+        screenWidth
+        xi
+        vi
     end
     properties (Hidden, SetAccess=protected)
         flip
@@ -35,26 +36,23 @@ classdef VS_dotRotationZoom < VStim
         
         function obj=run(obj)
             %calculate the angles of directions
-            nSpeeds=numel(obj.speed);
-            nRotationZoomModes=numel(obj.rotateDots);
-            nDirections=numel(obj.rotationZoomDirection);
+            nSpeeds=numel(obj.speeds);
+            nLuminocities=numel(obj.luminosities);
+            nDotNumbers=numel(obj.dotsNumbers);
             
-            obj.nTotTrials=obj.trialsPerCategory*nSpeeds*nRotationZoomModes*nDirections;
-            
-            D0=min(obj.actualVFieldDiameter); %half a ball on each side
-            r0=D0/2;
+            obj.nTotTrials=obj.trialsPerCategory*nSpeeds*nLuminocities*nDotNumbers;
             
             %calculate sequece of positions and times
-            obj.speeds=nan(1,obj.nTotTrials);
-            obj.rotateZoom=nan(1,obj.nTotTrials);
-            obj.directions=nan(1,obj.nTotTrials);
+            obj.allSpeeds=nan(1,obj.nTotTrials);
+            obj.allLuminocities=nan(1,obj.nTotTrials);
+            obj.allDotNumbers=nan(1,obj.nTotTrials);
             c=1;
             for i=1:nSpeeds
-                for j=1:nRotationZoomModes
-                    for k=1:nDirections
-                        obj.speeds( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.speed(i);
-                        obj.rotateZoom( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.rotateDots(j);
-                        obj.directions( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.rotationZoomDirection(k);
+                for j=1:nLuminocities
+                    for k=1:nDotNumbers
+                        obj.allSpeeds( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.speeds(i);
+                        obj.allLuminocities( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.luminosities(j);
+                        obj.allDotNumbers( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.dotsNumbers(k);
                         c=c+1;
                     end
                 end
@@ -62,9 +60,9 @@ classdef VS_dotRotationZoom < VStim
             %randomize
             if obj.randomize
                 randomPermutation=randperm(obj.nTotTrials);
-                obj.speeds=obj.speeds(randomPermutation);
-                obj.rotateZoom=obj.rotateZoom(randomPermutation);
-                obj.directions=obj.directions(randomPermutation);
+                obj.allSpeeds=obj.allSpeeds(randomPermutation);
+                obj.allLuminocities=obj.allLuminocities(randomPermutation);
+                obj.allDotNumbers=obj.allDotNumbers(randomPermutation);
             end
             
             %run test Flip (sometimes this first flip is slow and so it is not included in the anlysis
@@ -83,7 +81,16 @@ classdef VS_dotRotationZoom < VStim
             obj.miss=nan(obj.nTotTrials,nFrames);
             
             tFrame=(0:obj.ifi:(obj.stimDuration+obj.ifi(1)))';
-            
+            tFrame(2:end)=tFrame(2:end)+obj.waitFromOnset;
+            obj.screenWidth = obj.visualFieldRect(3:4)-obj.visualFieldRect(1:2);
+
+            %pre calculate the initial conditions for all trials - from these every dot can be calculated later
+            for i=1:obj.nTotTrials
+                obj.xi{i} = ceil(rand(obj.allDotNumbers(i),2)*[obj.screenWidth(1),0;0,obj.screenWidth(2)]) + obj.visualFieldRect([1,2]);
+                obj.vi{i} = rand(obj.allDotNumbers(i),2)-0.5;
+                obj.vi{i} = obj.vi{i}./sqrt(obj.vi{i}(:,1).^2+obj.vi{i}(:,2).^2)*obj.allSpeeds(i);
+            end
+
             save tmpVSFile obj; %temporarily save object in case of a crash
             disp('Session starting');
             
@@ -91,74 +98,43 @@ classdef VS_dotRotationZoom < VStim
             obj.sendTTL(1,true); %session start trigger (also triggers the recording start)
             WaitSecs(obj.preSessionDelay); %pre session wait time
             for i=1:obj.nTotTrials
-                tmpSpeed=obj.speeds(i);
-                tmpDir=obj.directions(i);
-                tmpRotZoom=obj.rotateZoom(i);
-                
-                mdir = tmpDir*ones(obj.nDots,1);
-                pfs = tmpSpeed * obj.ifi(1);                            % dot speed (pixels/frame)
-                
-                % ---------------------------------------
-                % initialize dot positions and velocities
-                % ---------------------------------------
-                
-                rmax = r0; %max distance from center [pixels]
-                rmin = 20; %min distance from center [pixels]
-                r = rmax * sqrt(rand(obj.nDots,1));	% r
-                r(r<rmin) = rmin;
-                t = 2*pi*rand(obj.nDots,1);                     % theta polar coordinate
-                cs = [cos(t), sin(t)];
-                xy = [r r] .* cs;   % dot positions in Cartesian coordinates (pixels from center)
-                
-                if tmpRotZoom
-                    dt = pfs * mdir ./ r;                       % change in theta per frame (radians)
-                else
-                    dr = pfs * mdir;                            % change in radius per frame (pixels)
-                    dxdy = [dr dr] .* cs;                       % change in x and y per frame (pixels)
+
+                tmpLum=obj.allLuminocities(i);
+                tmpNum=obj.allDotNumbers(i);
+
+                x=obj.xi{i};
+                v=obj.vi{i};
+                xAll=zeros([size(x),tmpNum]);
+                xAll(:,:,1)=x;
+                for f=2:nFrames
+                    xAll(:,:,f)=xAll(:,:,f-1)+v*obj.ifi(1);
+                    p1=xAll(:,1,f)>=obj.visualFieldRect(3) | xAll(:,1,f)<=obj.visualFieldRect(1);
+                    p2=xAll(:,2,f)>=obj.visualFieldRect(4) | xAll(:,2,f)<=obj.visualFieldRect(2);
+                    pC=p1|p2;
+                    xAll(pC,:,f)=xAll(pC,:,f-1)-v(pC,:)*obj.ifi(1);
+                    v(p1,1)=-v(p1,1);
+                    v(p2,2)=-v(p2,2);
+                    xAll(pC,:,f)=xAll(pC,:,f-1)+v(pC,:)*obj.ifi(1);
                 end
                 
-                xymatrix = transpose(xy); %try to remove the above
-                
+                %set times for all frames
+                j=1; %restart 
                 tFrameTmp=tFrame+GetSecs+obj.ifi;
-                
                 obj.sendTTL(2,true); %session start trigger (also triggers the recording start)
+
+                % Plots initial dot position
+                Screen('DrawDots', obj.PTB_win(1), squeeze(xAll(:,:,j))', obj.dotSize, tmpLum, [] ,1);  % change 1 to 0 to draw square dots [obj.centerX,obj.centerY]
+                %[minSmoothPointSize, maxSmoothPointSize, minAliasedPointSize, maxAliasedPointSize] = Screen('DrawDots', windowPtr
+                obj.applyBackgound;  %set background mask and finalize drawing (drawing finished)
+                obj.sendTTL(3,true); %session start trigger (also triggers the recording start)
+                [obj.flip(i,j),obj.stim(i,j),obj.flipEnd(i,j),obj.miss(i,j)]=Screen('Flip',obj.PTB_win,tFrameTmp(j));
+                obj.sendTTL(3,false); %session start trigger (also triggers the recording start)
+                WaitSecs(obj.waitFromOnset);
                 
-                for j=1:nFrames
+                for j=2:nFrames
                     % Update display
-                    Screen('DrawDots', obj.PTB_win(1), xymatrix, obj.dotSize, obj.dotLuminosity, [obj.centerX,obj.centerY] ,1);  % change 1 to 0 to draw square dots
+                    Screen('DrawDots', obj.PTB_win(1), squeeze(xAll(:,:,j))', obj.dotSize, tmpLum, [] ,1);  % change 1 to 0 to draw square dots [obj.centerX,obj.centerY]
                     obj.applyBackgound;  %set background mask and finalize drawing (drawing finished)
-                    
-                    if tmpRotZoom
-                        t = t + dt;                         % update theta
-                        xy = [r r] .* [cos(t), sin(t)];     % compute new positions
-                    else
-                        xy = xy + dxdy;						% move dots
-                        r = r + dr;							% update polar coordinates too
-                    end
-                    
-                    % check to see which dots have gone beyond the borders of the annuli
-                    r_out = find(r > rmax | r < rmin | rand(obj.nDots,1) < obj.f_kill);	% dots to reposition
-                    nout = length(r_out);
-                    
-                    if nout
-                        % choose new coordinates
-                        r(r_out) = rmax * sqrt(rand(nout,1));
-                        r(r<rmin) = rmin;
-                        t(r_out) = 2*pi*(rand(nout,1));
-                        
-                        % now convert the polar coordinates to Cartesian
-                        cs(r_out,:) = [cos(t(r_out)), sin(t(r_out))];
-                        xy(r_out,:) = [r(r_out) r(r_out)] .* cs(r_out,:);
-                        
-                        % compute the new cartesian velocities
-                        if tmpRotZoom
-                            dt(r_out) = pfs * mdir(r_out) ./ r(r_out);
-                        else
-                            dxdy(r_out,:) = [dr(r_out) dr(r_out)] .* cs(r_out,:);
-                        end
-                        
-                    end;
-                    xymatrix = transpose(xy);
 
                     obj.sendTTL(3,true); %session start trigger (also triggers the recording start)
                     [obj.flip(i,j),obj.stim(i,j),obj.flipEnd(i,j),obj.miss(i,j)]=Screen('Flip',obj.PTB_win,tFrameTmp(j));
@@ -236,9 +212,10 @@ classdef VS_dotRotationZoom < VStim
             line([0 0],ylim,'color','k','LineStyle','--');
         end
         %class constractor
-        function obj=VS_dotRotationZoom(w,h)
+        function obj=VS_linearlyMovingBouncingDots(w,h)
             %get the visual stimulation methods
             obj = obj@VStim(w); %calling superclass constructor
+            obj.stimDuration = 10;
         end
     end
 end %EOF
