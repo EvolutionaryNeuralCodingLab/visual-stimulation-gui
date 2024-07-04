@@ -20,15 +20,15 @@ for i=1:numel(obj.tilingRatio)
         end
         fprintf('Building rectangular grid of %d x %d\n',obj.rectGridSize(1),obj.rectGridSize(2));
         rectSpacing(2)=floor(h/obj.rectGridSize(2))-1;
-        if obj.rectangleAspectRatioOne
-            rectSpacing(1)=rectSpacing(2);
-        else
+        %if obj.rectangleAspectRatioOne
+        %    rectSpacing(1)=rectSpacing(2);
+        %else
             rectSpacing(1)=floor(w/obj.rectGridSize(1))-1;
-        end
+        %end
         obj.rectSide=rectSpacing*obj.tilingRatio;
         edgesY=floor((rectSpacing(2)-obj.rectSide(2))/2):rectSpacing(2):(h-obj.rectSide(2));
         edgesY=floor(edgesY+((h-(edgesY(end)+obj.rectSide(2)))-edgesY(1))/2);
-        edgesX=floor((rectSpacing(1)-rectSide(1))/2):rectSpacing(1):(w-obj.rectSide(1));
+        edgesX=floor((rectSpacing(1)-obj.rectSide(1))/2):rectSpacing(1):(w-obj.rectSide(1));
         edgesX=floor(edgesX+((w-(edgesX(end)+obj.rectSide(1)))-edgesX(1))/2);
         if numel(edgesX)~=obj.rectGridSize(1)
             fprintf('Could not fix the requested number of rectangles with the aspect ratio constraints\nReducing number of X rects to %d\n',numel(edgesX));

@@ -41,7 +41,10 @@ classdef VS_rectGrid < VStim
     methods
                 
         function obj=run(obj)
-            
+            %check if more than one stimulation screen exists.
+            if size(obj.rect,1)>1
+                error('This Visual stim can be displayed only on one screen. Set second screen to None and run again.')
+            end
             nLuminosities=numel(obj.rectLuminosity);
             nTilingRatios=numel(obj.tilingRatio);
 
