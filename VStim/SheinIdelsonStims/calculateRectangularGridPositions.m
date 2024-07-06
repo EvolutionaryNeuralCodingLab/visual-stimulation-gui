@@ -3,8 +3,8 @@ function [obj]=calculateRectangularGridPositions(obj)
 %calculate the coordinates for the rectangles that fit into the visual space
 centerX=obj.actualVFieldDiameter/2;
 centerY=obj.actualVFieldDiameter/2;
-w=obj.rect(3)-obj.rect(1);
-h=obj.rect(4)-obj.rect(2);
+w=obj.visualFieldRect(1,3)-obj.visualFieldRect(1,1);
+h=obj.visualFieldRect(1,4)-obj.visualFieldRect(1,2);
 %calculate the coordinates for the rectangles that fit into the visual space
 for i=1:numel(obj.tilingRatio)
     if numel(obj.rectGridSize)==1
@@ -58,10 +58,10 @@ for i=1:numel(obj.tilingRatio)
     Y4=Y1+obj.rectSide(i,2)-1;
 
     %move data to object
-    obj.rectData.X1{i}=X1;obj.rectData.Y1{i}=Y1;
-    obj.rectData.X2{i}=X2;obj.rectData.Y2{i}=Y2;
-    obj.rectData.X3{i}=X3;obj.rectData.Y3{i}=Y3;
-    obj.rectData.X4{i}=X4;obj.rectData.Y4{i}=Y4;
+    obj.rectData.X1{i}=round(X1);obj.rectData.Y1{i}=round(Y1);
+    obj.rectData.X2{i}=round(X2);obj.rectData.Y2{i}=round(Y2);
+    obj.rectData.X3{i}=round(X3);obj.rectData.Y3{i}=round(Y3);
+    obj.rectData.X4{i}=round(X4);obj.rectData.Y4{i}=round(Y4);
     if obj.tilingRatio(i)==max(obj.tilingRatio)
         if ~obj.showOnFullScreen
             obj.pValidRect{i}=find( sqrt((X1-centerX).^2+(Y1-centerY).^2)<=(obj.actualVFieldDiameter/2) &...

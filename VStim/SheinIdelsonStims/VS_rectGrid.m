@@ -12,7 +12,7 @@ classdef VS_rectGrid < VStim
         rectLuminosityTxt='The luminocity value for the rectangles, if array->show all given contrasts';
         randomizeTxt='Randomize values';
         shapeeTxt='Switch shape circle/rectangle';
-        rectGridSizeTxt='The size [N x N] (width x height) of the rectangular grid';
+        rectGridSizeTxt='The size [M x N] (height x width) of the rectangular grid';
         rotationTxt='The angle for visual field rotation (clockwise)';
         tilingRatioTxt='The ratio (0-1) beween the total tile length and field length (e.g. if 0.5 tiles are half the size require for complete tiling)';
         rectangleAspectRatioOneTxt='Squares will have an aspect ratio of 1 (can reduce number of squares)'
@@ -175,26 +175,24 @@ classdef VS_rectGrid < VStim
         
         function obj=CMShowGrid(obj,srcHandle,eventData,hPanel)
             
-            obj.tilingRatio(1)=obj.tilingRatio(1)*0.95;
-            %obj.calculatePositions;
+            %obj.tilingRatio(1)=obj.tilingRatio(1)*0.95;
+            [obj]=calculateRectangularGridPositions(obj); %Calcylate Grid positions for each ratio
             disp('Positions are not recalculated. Check in the future!')
-            obj.tilingRatio(1)=obj.tilingRatio(1)/0.95;
             nPositions=numel(obj.pValidRect);
             
             Screen('TextFont',obj.PTB_win, 'Courier New');
             Screen('TextSize',obj.PTB_win, 13);
-            
+
             % Update image buffer for the first time
             I=ones(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2)).*obj.visualFieldBackgroundLuminance;
             for i=1:nPositions
-                I(obj.rectData.X1(obj.pValidRect(i)):obj.rectData.X3(obj.pValidRect(i)),obj.rectData.Y1(obj.pValidRect(i)):obj.rectData.Y3(obj.pValidRect(i)))=obj.rectLuminosity;
+                I(obj.rectData.X1{1}(obj.pValidRect(i)):obj.rectData.X3{1}(obj.pValidRect(i)),obj.rectData.Y1{1}(obj.pValidRect(i)):obj.rectData.Y3{1}(obj.pValidRect(i)))=obj.rectLuminosity(1);
             end
             imgTex=Screen('MakeTexture', obj.PTB_win,I,obj.rotation);
             Screen('DrawTexture',obj.PTB_win,imgTex,[],obj.visualFieldRect,obj.rotation);
             
             for i=1:nPositions
-                Screen('DrawText', obj.PTB_win, num2str(i),obj.visualFieldRect(1)+obj.rectData.Y1(obj.pValidRect(i)),obj.visualFieldRect(2)+obj.rectData.X1(obj.pValidRect(i)),[min(obj.rectLuminosity+50,255) 0 0],[]);
-                
+                Screen('DrawText', obj.PTB_win, num2str(i),obj.visualFieldRect(1)+obj.rectData.Y1{1}(obj.pValidRect(i)),obj.visualFieldRect(2)+obj.rectData.X1{1}(obj.pValidRect(i)),[min(obj.rectLuminosity+50,255) 0 0],[]);
                 %DrawFormattedText(obj.PTB_win, num2str(i), obj.rectData.X1(obj.pValidRect(i)),obj.rectData.Y1(obj.pValidRect(i)),[255 0 0]);
             end
             
