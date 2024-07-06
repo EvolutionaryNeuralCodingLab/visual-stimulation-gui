@@ -6,6 +6,7 @@ classdef VS_rectGrid < VStim
         randomize = true;
         tilingRatio = [1];
         rotation = 0;
+        regular_Oddball_Ratio = [];
         shape = 'rectangle';
     end
     properties (Constant)
@@ -16,6 +17,7 @@ classdef VS_rectGrid < VStim
         rotationTxt='The angle for visual field rotation (clockwise)';
         tilingRatioTxt='The ratio (0-1) beween the total tile length and field length (e.g. if 0.5 tiles are half the size require for complete tiling)';
         rectangleAspectRatioOneTxt='Squares will have an aspect ratio of 1 (can reduce number of squares)'
+        regular_Oddball_RatioTxt='[Regular,oddBall,ratio] - the position of the regular stimuli, the oddball stimuli, and the ratio between them (e.g. 2,5,20)'
         remarks={'Categories in Flash stimuli are: Luminocity'};
     end
     properties (Hidden)
@@ -51,22 +53,34 @@ classdef VS_rectGrid < VStim
             [obj]=calculateRectangularGridPositions(obj); %Calcylate Grid positions for each ratio
 
             nPositions=numel(obj.pValidRect);
-            obj.nTotTrials=obj.trialsPerCategory*nLuminosities*nPositions*nTilingRatios;
-           
-            %calculate sequece of positions and times
-            obj.pos=nan(1,obj.nTotTrials);
-            obj.luminosities=nan(1,obj.nTotTrials);
-            obj.tilingRatios=nan(1,obj.nTotTrials);
-            c=1;
-            for i=1:nPositions
-                for j=1:nLuminosities
-                    for k=1:nTilingRatios
-                        obj.pos( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=i;
-                        obj.luminosities( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=j;
-                        obj.tilingRatios( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=k;
-                        c=c+1;
+            if isempty(obj.regular_Oddball_Ratio)
+                obj.nTotTrials=obj.trialsPerCategory*nLuminosities*nPositions*nTilingRatios;
+
+                %calculate sequece of positions and times
+                obj.pos=nan(1,obj.nTotTrials);
+                obj.luminosities=nan(1,obj.nTotTrials);
+                obj.tilingRatios=nan(1,obj.nTotTrials);
+                c=1;
+                for i=1:nPositions
+                    for j=1:nLuminosities
+                        for k=1:nTilingRatios
+                            obj.pos( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=i;
+                            obj.luminosities( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=j;
+                            obj.tilingRatios( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=k;
+                            c=c+1;
+                        end
                     end
                 end
+            else
+                if nLuminosities>1 | nTilingRatios>1
+                    error('more than one luminocity or tiling ratio are currently not supported in oddball experiments');
+                end
+                obj.nTotTrials=obj.trialsPerCategory*(obj.regular_Oddball_Ratio(3)+1);
+
+                %calculate sequece of positions and times
+                obj.pos=repmat([obj.regular_Oddball_Ratio(1)*ones(1,obj.regular_Oddball_Ratio(3)),obj.regular_Oddball_Ratio(2)],[1,obj.trialsPerCategory]);
+                obj.luminosities=ones(1,obj.nTotTrials);
+                obj.tilingRatios=ones(1,obj.nTotTrials);
             end
             if obj.randomize
                 randomPermutation=randperm(obj.nTotTrials);
@@ -175,9 +189,9 @@ classdef VS_rectGrid < VStim
         
         function obj=CMShowGrid(obj,srcHandle,eventData,hPanel)
             
-            %obj.tilingRatio(1)=obj.tilingRatio(1)*0.95;
+            obj.tilingRatio(1)=obj.tilingRatio(1)*0.9;
             [obj]=calculateRectangularGridPositions(obj); %Calcylate Grid positions for each ratio
-            disp('Positions are not recalculated. Check in the future!')
+            obj.tilingRatio(1)=obj.tilingRatio(1)/0.9;
             nPositions=numel(obj.pValidRect);
             
             Screen('TextFont',obj.PTB_win, 'Courier New');
