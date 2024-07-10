@@ -7,7 +7,6 @@ classdef VS_linearlyMovingBall < VStim
         randomize = true;
         speed = 500; %pixel per second
         rotation = 0;
-        movingObject = "ball";
         orientationFreq=5;
     end
     properties (Constant)
@@ -64,7 +63,7 @@ classdef VS_linearlyMovingBall < VStim
             obj.offsets=nan(1,obj.nTotTrials);
             obj.ballSizes=nan(1,obj.nTotTrials);
             c=1;
-            if obj.movingObject=="rectOrient"
+            if strcmp(obj.movingObject,'rectOrient')%obj.movingObject=='rectOrient' 
                 obj.nTotTrials=obj.trialsPerCategory*nSpeeds*nBallSizes*nOffsets*obj.numberOfDirections*nOrientations;
                 obj.orientations=nan(1,obj.nTotTrials);
                 for i=1:nSpeeds
@@ -107,7 +106,7 @@ classdef VS_linearlyMovingBall < VStim
                 obj.offsets=obj.offsets(randomPermutation);
                 obj.directions=obj.directions(randomPermutation);
                 obj.ballSizes=obj.ballSizes(randomPermutation);
-                if obj.movingObject=="rectOrient"
+                if strcmp(obj.movingObject,'rectOrient')%obj.movingObject=="rectOrient"
                     obj.orientations=obj.orientations(randomPermutation);
                 end
             end
@@ -160,7 +159,7 @@ classdef VS_linearlyMovingBall < VStim
                 end
             end
 
-            if obj.movingObject=="rectOrient"
+            if strcmp(obj.movingObject,'rectOrient')%obj.movingObject=="rectOrient"
                 if numel(obj.ballLuminosity)~=2
                     disp('For a moving object of type rectOrient ballLuminosity should have two colors');
                     return;
@@ -197,11 +196,11 @@ classdef VS_linearlyMovingBall < VStim
                 obj.sendTTL(2,true); %session start trigger (also triggers the recording start)
                 for j=1:obj.nFrames(pTmpSpeed,pTmpOffset,pTmpPhi)
                     % Update display
-                    if obj.movingObject=="ball"
+                    if strcmp(obj.movingObject,'ball')%obj.movingObject=="ball"
                         Screen('FillOval',obj.PTB_win,obj.ballLuminosity,ballCoordinates(j,:));
-                    elseif obj.movingObject=="rect"
+                    elseif strcmp(obj.movingObject,'rect')%obj.movingObject=="rect"
                         Screen('FillRect',obj.PTB_win,obj.ballLuminosity,ballCoordinates(j,:));
-                    elseif obj.movingObject=="rectOrient"
+                    elseif strcmp(obj.movingObject,'rectOrient')%obj.movingObject=="rectOrient"
                         ballCoordinatesGrid=ones(obj.orientationFreq,1)*ballCoordinates(j,:);
                         ballCoordinatesGrid(:,[obj.orientations(i) obj.orientations(i)+2])=ballCoordinatesGrid(:,obj.orientations(i))+[orientationSteps(1:end-1)' orientationSteps(2:end)'];
                         Screen('FillRect',obj.PTB_win,colorsInRect,ballCoordinatesGrid');

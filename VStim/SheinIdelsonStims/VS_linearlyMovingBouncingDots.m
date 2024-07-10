@@ -123,7 +123,7 @@ classdef VS_linearlyMovingBouncingDots < VStim
                 obj.sendTTL(2,true); %session start trigger (also triggers the recording start)
 
                 % Plots initial dot position
-                Screen('DrawDots', obj.PTB_win(1), squeeze(xAll(:,:,j))', obj.dotSize, tmpLum, [] ,1);  % change 1 to 0 to draw square dots [obj.centerX,obj.centerY]
+                Screen('DrawDots', obj.PTB_win(1), squeeze(xAll(:,:,j))', obj.dotSize, tmpLum,[],1);  % change 1 to 0 to draw square dots [obj.centerX,obj.centerY]
                 %[minSmoothPointSize, maxSmoothPointSize, minAliasedPointSize, maxAliasedPointSize] = Screen('DrawDots', windowPtr
                 obj.applyBackgound;  %set background mask and finalize drawing (drawing finished)
                 obj.sendTTL(3,true); %session start trigger (also triggers the recording start)
@@ -133,11 +133,13 @@ classdef VS_linearlyMovingBouncingDots < VStim
                 
                 for j=2:nFrames
                     % Update display
-                    Screen('DrawDots', obj.PTB_win(1), squeeze(xAll(:,:,j))', obj.dotSize, tmpLum, [] ,1);  % change 1 to 0 to draw square dots [obj.centerX,obj.centerY]
+                    Screen('DrawDots', obj.PTB_win(1), squeeze(xAll(:,:,j))', obj.dotSize, tmpLum,[],1); % change 1 to 0 to draw square dots [obj.centerX,obj.centerY]
                     obj.applyBackgound;  %set background mask and finalize drawing (drawing finished)
 
                     obj.sendTTL(3,true); %session start trigger (also triggers the recording start)
+                   
                     [obj.flip(i,j),obj.stim(i,j),obj.flipEnd(i,j),obj.miss(i,j)]=Screen('Flip',obj.PTB_win,tFrameTmp(j));
+                  
                     obj.sendTTL(3,false); %session start trigger (also triggers the recording start)
                 end
                 obj.sendTTL(2,false); %session start trigger (also triggers the recording start)
