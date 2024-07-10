@@ -6,16 +6,18 @@ classdef VS_rectGrid < VStim
         randomize = true;
         tilingRatio = [1];
         rotation = 0;
+        regular_Oddball_Ratio = [];
         shape = 'rectangle';
     end
     properties (Constant)
         rectLuminosityTxt='The luminocity value for the rectangles, if array->show all given contrasts';
         randomizeTxt='Randomize values';
         shapeeTxt='Switch shape circle/rectangle';
-        rectGridSizeTxt='The size [N x N] (width x height) of the rectangular grid';
+        rectGridSizeTxt='The size [M x N] (height x width) of the rectangular grid';
         rotationTxt='The angle for visual field rotation (clockwise)';
         tilingRatioTxt='The ratio (0-1) beween the total tile length and field length (e.g. if 0.5 tiles are half the size require for complete tiling)';
         rectangleAspectRatioOneTxt='Squares will have an aspect ratio of 1 (can reduce number of squares)'
+        regular_Oddball_RatioTxt='[Regular,oddBall,ratio] - the position of the regular stimuli, the oddball stimuli, and the ratio between them (e.g. 2,5,20)'
         remarks={'Categories in Flash stimuli are: Luminocity'};
     end
     properties (Hidden)
@@ -41,29 +43,44 @@ classdef VS_rectGrid < VStim
     methods
                 
         function obj=run(obj)
-            
+            %check if more than one stimulation screen exists.
+            if size(obj.rect,1)>1
+                error('This Visual stim can be displayed only on one screen. Set second screen to None and run again.')
+            end
             nLuminosities=numel(obj.rectLuminosity);
             nTilingRatios=numel(obj.tilingRatio);
 
             [obj]=calculateRectangularGridPositions(obj); %Calcylate Grid positions for each ratio
 
             nPositions=numel(obj.pValidRect);
-            obj.nTotTrials=obj.trialsPerCategory*nLuminosities*nPositions*nTilingRatios;
-           
-            %calculate sequece of positions and times
-            obj.pos=nan(1,obj.nTotTrials);
-            obj.luminosities=nan(1,obj.nTotTrials);
-            obj.tilingRatios=nan(1,obj.nTotTrials);
-            c=1;
-            for i=1:nPositions
-                for j=1:nLuminosities
-                    for k=1:nTilingRatios
-                        obj.pos( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=i;
-                        obj.luminosities( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=j;
-                        obj.tilingRatios( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=k;
-                        c=c+1;
+            if isempty(obj.regular_Oddball_Ratio)
+                obj.nTotTrials=obj.trialsPerCategory*nLuminosities*nPositions*nTilingRatios;
+
+                %calculate sequece of positions and times
+                obj.pos=nan(1,obj.nTotTrials);
+                obj.luminosities=nan(1,obj.nTotTrials);
+                obj.tilingRatios=nan(1,obj.nTotTrials);
+                c=1;
+                for i=1:nPositions
+                    for j=1:nLuminosities
+                        for k=1:nTilingRatios
+                            obj.pos( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=i;
+                            obj.luminosities( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=j;
+                            obj.tilingRatios( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=k;
+                            c=c+1;
+                        end
                     end
                 end
+            else
+                if nLuminosities>1 | nTilingRatios>1
+                    error('more than one luminocity or tiling ratio are currently not supported in oddball experiments');
+                end
+                obj.nTotTrials=obj.trialsPerCategory*(obj.regular_Oddball_Ratio(3)+1);
+
+                %calculate sequece of positions and times
+                obj.pos=repmat([obj.regular_Oddball_Ratio(1)*ones(1,obj.regular_Oddball_Ratio(3)),obj.regular_Oddball_Ratio(2)],[1,obj.trialsPerCategory]);
+                obj.luminosities=ones(1,obj.nTotTrials);
+                obj.tilingRatios=ones(1,obj.nTotTrials);
             end
             if obj.randomize
                 randomPermutation=randperm(obj.nTotTrials);
@@ -172,26 +189,24 @@ classdef VS_rectGrid < VStim
         
         function obj=CMShowGrid(obj,srcHandle,eventData,hPanel)
             
-            obj.tilingRatio(1)=obj.tilingRatio(1)*0.95;
-            %obj.calculatePositions;
-            disp('Positions are not recalculated. Check in the future!')
-            obj.tilingRatio(1)=obj.tilingRatio(1)/0.95;
+            obj.tilingRatio(1)=obj.tilingRatio(1)*0.9;
+            [obj]=calculateRectangularGridPositions(obj); %Calcylate Grid positions for each ratio
+            obj.tilingRatio(1)=obj.tilingRatio(1)/0.9;
             nPositions=numel(obj.pValidRect);
             
             Screen('TextFont',obj.PTB_win, 'Courier New');
             Screen('TextSize',obj.PTB_win, 13);
-            
+
             % Update image buffer for the first time
             I=ones(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2)).*obj.visualFieldBackgroundLuminance;
             for i=1:nPositions
-                I(obj.rectData.X1(obj.pValidRect(i)):obj.rectData.X3(obj.pValidRect(i)),obj.rectData.Y1(obj.pValidRect(i)):obj.rectData.Y3(obj.pValidRect(i)))=obj.rectLuminosity;
+                I(obj.rectData.X1{1}(obj.pValidRect(i)):obj.rectData.X3{1}(obj.pValidRect(i)),obj.rectData.Y1{1}(obj.pValidRect(i)):obj.rectData.Y3{1}(obj.pValidRect(i)))=obj.rectLuminosity(1);
             end
             imgTex=Screen('MakeTexture', obj.PTB_win,I,obj.rotation);
             Screen('DrawTexture',obj.PTB_win,imgTex,[],obj.visualFieldRect,obj.rotation);
             
             for i=1:nPositions
-                Screen('DrawText', obj.PTB_win, num2str(i),obj.visualFieldRect(1)+obj.rectData.Y1(obj.pValidRect(i)),obj.visualFieldRect(2)+obj.rectData.X1(obj.pValidRect(i)),[min(obj.rectLuminosity+50,255) 0 0],[]);
-                
+                Screen('DrawText', obj.PTB_win, num2str(i),obj.visualFieldRect(1)+obj.rectData.Y1{1}(obj.pValidRect(i)),obj.visualFieldRect(2)+obj.rectData.X1{1}(obj.pValidRect(i)),[min(obj.rectLuminosity+50,255) 0 0],[]);
                 %DrawFormattedText(obj.PTB_win, num2str(i), obj.rectData.X1(obj.pValidRect(i)),obj.rectData.Y1(obj.pValidRect(i)),[255 0 0]);
             end
             
