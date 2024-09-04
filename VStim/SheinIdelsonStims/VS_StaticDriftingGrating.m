@@ -9,15 +9,17 @@ classdef VS_StaticDriftingGrating < VStim
         angles=6; %Number of different angles the grating is going to be oriented
         randomizeAngle = true;
 
-        minFreq=.5; %Minimum velocity in cycles per second (Hz)
-        maxFreq=1.5; %Maximum velocity in cycles per second (Hz)
-        freqStep=.5; %Step in which the velocity changes
+        %minFreq=.5; %Minimum velocity in cycles per second (Hz)
+        %maxFreq=1.5; %Maximum velocity in cycles per second (Hz)
+        %freqStep=.5; %Step in which the velocity changes
+        TempFreqs = 1;
         randomizeTF = true;
 
 
-        minSpatialFreq=0.5; % min spatial freq (cycles/cm)
-        maxSpatialFreq=1.0; % max spatial freq (cycles/cm)
-        spatialFreqStep=0.5;
+%         minSpatialFreq=0.5; % min spatial freq (cycles/cm)
+%         maxSpatialFreq=1.0; % max spatial freq (cycles/cm)
+%         spatialFreqStep=0.5;
+        SpatialFreqs = 1;
         randomizeSF = true
 
         static_time = 2;
@@ -33,13 +35,15 @@ classdef VS_StaticDriftingGrating < VStim
         stimRadiousTxt='radious of stimulus';
         contrastTxt='% of dynamic range to use';
         anglesTxt='Number of tilt angles of the grating';
-        minFreqTxt='min temp freq (Hz)';
-        maxFreqTxt='max temp freq (Hz)';
-        freqStepTxt='step stize for temp freq';
-        minSpatialFreqTxt='min spatial freq (cycles/cm) screen size in cm is a paramter below';
-        maxSpatialFreqTxt='max spatial freq (cycles/cm) screen size in cm is a paramter below';
-        spatialFreqStepTxt='step stize for spatial freq';
-        
+%         minFreqTxt='min temp freq (Hz)';
+%         maxFreqTxt='max temp freq (Hz)';
+%         freqStepTxt='step stize for temp freq';
+%         minSpatialFreqTxt='min spatial freq (cycles/cm) screen size in cm is a paramter below';
+%         maxSpatialFreqTxt='max spatial freq (cycles/cm) screen size in cm is a paramter below';
+%         spatialFreqStepTxt='step stize for spatial freq';
+        SpatialFreqsTxt = 'vector of spatial frequencies in cycles/cm';
+        TempFreqsTxt = 'vector of spatial frequencies in cycles/sec, Hz';
+%         
         remarks={''};
         
     end
@@ -90,8 +94,8 @@ classdef VS_StaticDriftingGrating < VStim
 
             %load up the range of parameters that are going to be presented
             obj.anglesToPresent=0:round(360/obj.angles):360; %nice to have it divisible by 360
-            obj.cyclesPerSecond=obj.minFreq:obj.freqStep:obj.maxFreq;
-            obj.spatialFreq=(obj.minSpatialFreq:obj.spatialFreqStep:obj.maxSpatialFreq)/obj.pixPerCm;
+            obj.cyclesPerSecond=obj.TempFreqs;%obj.minFreq:obj.freqStep:obj.maxFreq;
+            obj.spatialFreq=obj.SpatialFreqs/obj.pixPerCm;%(obj.minSpatialFreq:obj.spatialFreqStep:obj.maxSpatialFreq)/obj.pixPerCm;
 
             %get total number of trials
             nAngles=length(obj.anglesToPresent);

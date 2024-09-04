@@ -7,6 +7,7 @@ classdef VS_linearlyMovingBall < VStim
         randomize = true;
         speed = 500; %pixel per second
         rotation = 0;
+        movingObject = 'ball';
         orientationFreq=5;
     end
     properties (Constant)
