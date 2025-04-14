@@ -354,7 +354,7 @@ initializeVisualStim;
             sec_ms=num2str(currentTime(6));
             sec_ms(find(sec_ms=='.'))='_';
             timeString=[timeString sec_ms];
-            saveFile=[VS.par.VSDirectory '\stats\' VS.par.VSObjNames{VS.par.currentVSO} '_' timeString];
+            saveFile=[VS.par.VSDirectory filesep 'stats' filesep VS.par.VSObjNames{VS.par.currentVSO} '_' timeString];
         end
 
         %Add screen location to visual stimulation object
@@ -382,6 +382,7 @@ initializeVisualStim;
 
             VSMetaData=VS.par.VSO.getLastStimStatistics(VS.hand.stimulationStatisticsFigure); %if a figure handle is added as input object plots
             print(saveFile(1:end-4),'-djpeg','-r300');
+            %exportapp(VS.hand.stimulationStatisticsFigure,[saveFile(1:end-4) '.jpg']); %check if working - currently problematic
         end
     end
 
