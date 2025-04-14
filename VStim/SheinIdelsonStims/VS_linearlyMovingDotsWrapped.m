@@ -41,8 +41,10 @@ classdef VS_linearlyMovingDotsWrapped < VStim
             %calculate the angles of directions
             nSpeeds=numel(obj.speeds);
             nLuminocities=numel(obj.luminosities);
-            nDotNumbers=numel(obj.dotsNumbers);
+            nDotNumbers=size(obj.dotsNumbers,1);
             nDrifts=size(obj.drifts,1);
+
+            if size(obj.drifts,2)~=2,error('The input drift input is not size [N,2]! Please change and run again!'),end
 
             obj.nTotTrials=obj.trialsPerCategory*nSpeeds*nLuminocities*nDotNumbers*nDrifts;
             
@@ -59,7 +61,7 @@ classdef VS_linearlyMovingDotsWrapped < VStim
                             obj.allSpeeds( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.speeds(i);
                             obj.allLuminocities( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.luminosities(j);
                             obj.allDotNumbers( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) )=obj.dotsNumbers(k);
-                            obj.allDrifts( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) , :)=obj.drifts(l,:);
+                            obj.allDrifts( ((c-1)*obj.trialsPerCategory+1):(c*obj.trialsPerCategory) , :)=ones(obj.trialsPerCategory,1)*obj.drifts(l,:);
                             c=c+1;
                         end
                     end
