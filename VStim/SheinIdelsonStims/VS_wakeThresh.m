@@ -88,12 +88,27 @@ classdef VS_wakeThresh < VStim
         
         function obj=CMloadAudio(obj,srcHandle,eventData,hPanel)
             [obj.audioFileName, obj.audioPathName] = uigetfile('*.*','Choose audio files','MultiSelect','On');
+            if ~iscell(obj.audioFileName)
+                tmp{1}=obj.audioFileName;
+                obj.audioFileName=tmp;
+            end
             for i=1:numel(obj.audioFileName)
                 [obj.soundWF{i},obj.soundFs(i)] = audioread([obj.audioPathName obj.audioFileName{i}]);
             end
             disp([num2str(numel(obj.audioFileName)) ' sounds loaded successfully!']);
         end
         
+        %{
+        %Make a chirp and save it:
+            t=(1:5e4)/1e4;%[100uS]-MHz
+            f0=10; %[Hz]
+            f1=10e3 %[Hz]
+            t1=5;
+            y = chirp(t,f0,t1,f1);
+            pspectrum(y,t,"spectrogram")
+            audiowrite('Chirp10_10000_5S.wav',y,1e4);
+        %}
+
         function outStats=getLastStimStatistics(obj,hFigure)
         end
         

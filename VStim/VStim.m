@@ -236,9 +236,9 @@ classdef (Abstract) VStim < handle
                 if obj.displaySyncSignal
                     %calculate the rectangular size as a fraction of the visual field diameter
                     obj.syncSquareSizePix = round(obj.syncSquareScreenFraction*obj.actualVFieldDiameter);
-                    maskblobOn((obj.rect(i,4)-obj.syncSquareSizePix):end,1:obj.syncSquareSizePix,1)=obj.syncSquareLuminosity;
-                    maskblobOn((obj.rect(i,4)-obj.syncSquareSizePix):end,1:obj.syncSquareSizePix,2)=obj.whiteIdx;
-                    maskblobOff((obj.rect(i,4)-obj.syncSquareSizePix):end,1:obj.syncSquareSizePix,2)=obj.whiteIdx;
+                    maskblobOn((obj.rect(i,4)-obj.syncSquareSizePix(1)):end,1:obj.syncSquareSizePix(1),1)=obj.syncSquareLuminosity;
+                    maskblobOn((obj.rect(i,4)-obj.syncSquareSizePix(1)):end,1:obj.syncSquareSizePix(1),2)=obj.whiteIdx;
+                    maskblobOff((obj.rect(i,4)-obj.syncSquareSizePix(1)):end,1:obj.syncSquareSizePix(1),2)=obj.whiteIdx;
                 end
 
                 % Build a single transparency mask texture:
