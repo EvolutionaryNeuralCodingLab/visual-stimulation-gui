@@ -25,6 +25,7 @@ classdef VS_linearlyMovingBar < VStim
         speeds
         directions
         offsets
+        order
         barTrajectories1X
         barTrajectories2X
         barTrajectories1Y
@@ -67,10 +68,10 @@ classdef VS_linearlyMovingBar < VStim
             
             %randomize
             if obj.randomize
-                randomPermutation=randperm(obj.nTotTrials);
-                obj.speeds=obj.speeds(randomPermutation);
-                obj.offsets=obj.offsets(randomPermutation);
-                obj.directions=obj.directions(randomPermutation);
+                obj.order=randperm(obj.nTotTrials);
+                obj.speeds=obj.speeds(obj.order);
+                obj.offsets=obj.offsets(obj.order);
+                obj.directions=obj.directions(obj.order);
             end
             
             %run test Flip (sometimes this first flip is slow and so it is not included in the anlysis

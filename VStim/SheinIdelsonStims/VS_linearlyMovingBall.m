@@ -30,6 +30,7 @@ classdef VS_linearlyMovingBall < VStim
         orientations = [];
         movementDuration
         nFrames
+        order
         
         ballTrajectoriesX
         ballTrajectoriesY
@@ -102,13 +103,13 @@ classdef VS_linearlyMovingBall < VStim
             
             %randomize
             if obj.randomize
-                randomPermutation=randperm(obj.nTotTrials);
-                obj.speeds=obj.speeds(randomPermutation);
-                obj.offsets=obj.offsets(randomPermutation);
-                obj.directions=obj.directions(randomPermutation);
-                obj.ballSizes=obj.ballSizes(randomPermutation);
+                obj.order=randperm(obj.nTotTrials);
+                obj.speeds=obj.speeds(obj.order);
+                obj.offsets=obj.offsets(obj.order);
+                obj.directions=obj.directions(obj.order);
+                obj.ballSizes=obj.ballSizes(obj.order);
                 if obj.movingObject=="rectOrient"
-                    obj.orientations=obj.orientations(randomPermutation);
+                    obj.orientations=obj.orientations(obj.order);
                 end
             end
 
