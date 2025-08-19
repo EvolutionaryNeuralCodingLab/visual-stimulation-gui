@@ -138,7 +138,7 @@ classdef VS_linearlyMovingBall < VStim
             
             disp('preparing all trajectories');
 
-            maximalNumberOfFrames=ceil(max(D0./obj.speed)./obj.ifi);
+            maximalNumberOfFrames=ceil(max(D0./min(obj.speed))./obj.ifi);
             obj.ballTrajectoriesX=nan(nSpeeds,nOffsets,obj.numberOfDirections,maximalNumberOfFrames);
             obj.ballTrajectoriesY=nan(nSpeeds,nOffsets,obj.numberOfDirections,maximalNumberOfFrames);
             obj.nFrames=nan(nSpeeds,nOffsets,obj.numberOfDirections);
