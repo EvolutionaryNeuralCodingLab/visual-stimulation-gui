@@ -4,7 +4,8 @@ classdef VS_linearlyMovingBouncingDots < VStim
         randomize = true;
         speeds = 100; %pixel per second
         dotsNumbers= 1000 % number of dots
-        dotSize= 5 % width of dot (pixels)
+        dotSize= 5; % width of dot (pixels)
+        coherence = 0.5; %Percentage of dots athat are not moving randomly
         waitFromOnset = 1; %time to wait between dots appearance and dot movement
     end
     properties (Constant)
@@ -12,6 +13,7 @@ classdef VS_linearlyMovingBouncingDots < VStim
         dotSizeTxt='The size of the dots [pixels]';
         rotateDotsTxt='True/false/[true false] - whether to rotate, zoom or both';
         randomizeTxt='Randomize the order of different trials';
+        coherenceTxT 
         dotsNumbersTxt='The number of dots to be shown, if array->show all given dot numbers';
         speedTxt='The speed of the moving dots [pixels/sec], if array->show all given speeds';
         waitFromOnsetTxt='The time [s] to wait from presentation of dots to start of motion'

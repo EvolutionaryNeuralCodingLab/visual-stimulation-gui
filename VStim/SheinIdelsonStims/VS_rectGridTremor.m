@@ -101,15 +101,34 @@ classdef VS_rectGridTremor < VStim
             obj.visualFieldBackgroundLuminance=obj.visualFieldBackgroundLuminance;
             
             % Update image buffer for the first time
-            for i=1:nPositions
-                I=ones(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2)).*obj.visualFieldBackgroundLuminance;
-                I(X1(pValidRect(i)):X3(pValidRect(i)),Y1(pValidRect(i)):Y3(pValidRect(i)))=obj.rectLuminosity;
-                imgTex(i,1)=Screen('MakeTexture', obj.PTB_win,I,obj.rotation);
-                
-                I=ones(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2)).*obj.visualFieldBackgroundLuminance;
-                I((X1(pValidRect(i))+obj.tremorPixels):(X3(pValidRect(i))+obj.tremorPixels),...
-                    (Y1(pValidRect(i))+obj.tremorPixels):(Y3(pValidRect(i))+obj.tremorPixels))=obj.rectLuminosity;
-                imgTex(i,2)=Screen('MakeTexture', obj.PTB_win,I,obj.rotation);
+            if strcmp(obj.shape,'circle')
+                for i=1:nPositions
+                    for j=1:nLuminosities
+                        for k=1:nTilingRatios % on tile ratio
+                            I=ones(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2)).*obj.visualFieldBackgroundLuminance;
+                            x0=round((obj.rectData.X1{k}(obj.pValidRect(i))+obj.rectData.X3{k}(obj.pValidRect(i)))/2);
+                            y0=round((obj.rectData.Y1{k}(obj.pValidRect(i))+obj.rectData.Y3{k}(obj.pValidRect(i)))/2);
+
+                            pX=obj.rectData.X1{k}(obj.pValidRect(i)):obj.rectData.X3{k}(obj.pValidRect(i));
+                            pY=obj.rectData.Y1{k}(obj.pValidRect(i)):obj.rectData.Y3{k}(obj.pValidRect(i));
+                            [Xtmp,Ytmp]=meshgrid(pX,pY);
+                            pV=((Xtmp-x0).^2+(Ytmp-y0).^2)<(obj.rectSide(k)/2).^2;%*obj.tilingRatio(k);
+                            tmpInd=sub2ind(size(I),Xtmp(pV),Ytmp(pV));
+                            I(tmpInd)=obj.rectLuminosity(j);
+                            imgTex(i,j,k)=Screen('MakeTexture', obj.PTB_win,I,obj.rotation);
+                        end
+                    end
+                end
+            elseif strcmp(obj.shape,'rectangle')
+                for i=1:nPositions
+                    for j=1:nLuminosities
+                        for k=1:nTilingRatios
+                            I=ones(obj.visualFieldRect(3)-obj.visualFieldRect(1),obj.visualFieldRect(4)-obj.visualFieldRect(2)).*obj.visualFieldBackgroundLuminance;
+                            I(obj.rectData.X1{k}(obj.pValidRect(i)):obj.rectData.X3{k}(obj.pValidRect(i)),obj.rectData.Y1{k}(obj.pValidRect(i)):obj.rectData.Y3{k}(obj.pValidRect(i)))=obj.rectLuminosity(j);
+                            imgTex(i,j,k)=Screen('MakeTexture', obj.PTB_win,I,obj.rotation);
+                        end
+                    end
+                end
             end
             
             switchTimes=0:(1/obj.tremorFreq/2):obj.stimDuration;
@@ -133,7 +152,8 @@ classdef VS_rectGridTremor < VStim
             disp('Session starting');
             
             %main loop - start the session
-            pp(uint8(obj.trigChNames(1)),true,false,uint8(0),uint64(32784)); %session start trigger (also triggers the recording start)
+            obj.sendTTL(1,true); %session start trigger (also triggers the recording start)
+            %pp(uint8(obj.trigChNames(1)),true,false,uint8(0),uint64(32784)); %session start trigger (also triggers the recording start)
             WaitSecs(obj.preSessionDelay); %pre session wait time
             
             for i=1:obj.nTotTrials
@@ -142,18 +162,22 @@ classdef VS_rectGridTremor < VStim
                 Screen('DrawTexture',obj.PTB_win,obj.masktex);
                 Screen('DrawingFinished', obj.PTB_win); % Tell PTB that no further drawing commands will follow before Screen('Flip')
                 
-                pp(uint8(obj.trigChNames(2)),true,false,uint8(0),uint64(32784));
+                %pp(uint8(obj.trigChNames(2)),true,false,uint8(0),uint64(32784));
+                obj.sendTTL(2,true); %session start trigger (also triggers the recording start)
+
                 
                 t0=GetSecs;
                 for j=1:numel(switchTimes)
                     [obj.on_Flip(j,i),obj.on_Stim(j,i),obj.on_FlipEnd(j,i),obj.on_Miss(j,i)]=Screen('Flip',obj.PTB_win,t0+switchTimes(j));
-                    pp(uint8(obj.trigChNames(3)),tremorPos,false,uint8(0),uint64(32784)); %session start trigger (also triggers the recording start)
+                    %pp(uint8(obj.trigChNames(3)),tremorPos,false,uint8(0),uint64(32784)); %session start trigger (also triggers the recording start)
+                    obj.sendTTL(3,true);
                     
                     tremorPos=~tremorPos;
                     
                     Screen('DrawTexture',obj.PTB_win,imgTex(obj.pos(i+1),tremorPos+1),[],obj.visualFieldRect,obj.rotation);
                     Screen('DrawTexture',obj.PTB_win,obj.masktex);
                     Screen('DrawingFinished', obj.PTB_win); % Tell PTB that no further drawing commands will follow before Screen('Flip')
+                    obj.sendTTL(3,false);
                 end
                 
                 Screen('FillOval',obj.PTB_win,obj.visualFieldBackgroundLuminance);
@@ -162,7 +186,9 @@ classdef VS_rectGridTremor < VStim
                 
                 
                 [obj.off_Flip(i),obj.off_Stim(i),obj.off_FlipEnd(i),obj.off_Miss(i)]=Screen('Flip',obj.PTB_win,t0+obj.stimDuration);
-                pp(uint8(obj.trigChNames(2)),false,false,uint8(0),uint64(32784));
+                
+
+                obj.sendTTL(2,false);
                 
                 disp(['Trial ' num2str(i) '/' num2str(obj.nTotTrials)]);
                 
@@ -178,7 +204,9 @@ classdef VS_rectGridTremor < VStim
             obj.pos(end)=[]; %remove the last stim which is not shown
             
             WaitSecs(obj.postSessionDelay);
-            pp(uint8(obj.trigChNames(1)),false,false,uint8(0),uint64(32784)); %session end trigger
+            %pp(uint8(obj.trigChNames(1)),false,false,uint8(0),uint64(32784)); %session end trigger
+             obj.sendTTL(1,false); %session start trigger (also triggers the recording start)
+
             disp('Session ended');
             Screen('Close',imgTex);
         end
