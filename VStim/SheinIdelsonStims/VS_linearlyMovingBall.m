@@ -115,7 +115,7 @@ classdef VS_linearlyMovingBall < VStim
                 obj.offsets=obj.offsets(obj.order);
                 obj.directions=obj.directions(obj.order);
                 obj.ballSizes=obj.ballSizes(obj.order);
-                obj.Luminosities=obj.Luminosities(randomPermutation);
+                obj.Luminosities=obj.Luminosities(obj.order);
                 if strcmp(obj.movingObject,'rectOrient')%obj.movingObject=="rectOrient"
                     obj.orientations=obj.orientations(obj.order);
                 end
