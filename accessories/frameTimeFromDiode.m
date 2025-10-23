@@ -74,7 +74,6 @@ if extractSingleFrameShifts
     medLength=frameSamples*0.2;
 else
     medLength=frameSamples*0.8;
-
 end
 
 if isempty(F)
@@ -212,6 +211,8 @@ for i=1:nChunks
         if lowpass
             Ftmp=F.getFilteredData(A);
             Aflat=A-Ftmp; %flatten oscilations and drift
+        else
+            Aflat = A;
         end
         medA = fastmedfilt1d(Aflat(:),medLength*2);
         eva = evalclusters(medA,'kmeans','DaviesBouldin','KList',[2:4]);
