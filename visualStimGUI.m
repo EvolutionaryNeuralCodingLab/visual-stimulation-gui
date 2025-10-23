@@ -1,6 +1,7 @@
 function []=visualStimGUI(varargin)
 %% Default params
 simulationMode=false;
+fprintf('Starting visual stimulation GUI in screen mode (for simulation mode start with visualStimGUI(''simulationMode'',1)\n');
 initialVStim='VS_testStim';
 % PsychImaging('PrepareConfiguration');
 % PsychImaging('AddTask', 'General', 'UsePanelFitter', [600 450], 'Aspect');
@@ -165,7 +166,7 @@ initializeVisualStim;
             VS.par.ScreenPosOriginal(i,:)=Screen('Rect', VS.par.screens(i));
         end
 
-        if ~isfield(VS.par,'ScreenPos')
+        if ~isfield(VS.par,'ScreenPos') && ~simulationMode
             VS.par.ScreenPos=VS.par.ScreenPosOriginal(find(VS.par.screenAssignment==3,1,'first'),:);
         end
 

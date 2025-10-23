@@ -67,14 +67,15 @@ classdef VS_movie < VStim
                 disp('Simulation mode finished running');
                 return;
             end
+            maxFrameCount=obj.initialFrozenFrames+max(obj.movFrameCount);
             
-            obj.flip=nan(obj.nTotTrials,obj.initialFrozenFrames+obj.movFrameCount);
-            obj.stim=nan(obj.nTotTrials,obj.initialFrozenFrames+obj.movFrameCount);
-            obj.flipEnd=nan(obj.nTotTrials,obj.initialFrozenFrames+obj.movFrameCount);
-            obj.miss=nan(obj.nTotTrials,obj.initialFrozenFrames+obj.movFrameCount);
+            obj.flip=nan(obj.nTotTrials,maxFrameCount);
+            obj.stim=nan(obj.nTotTrials,maxFrameCount);
+            obj.flipEnd=nan(obj.nTotTrials,maxFrameCount);
+            obj.miss=nan(obj.nTotTrials,maxFrameCount);
             
-            tFrame=( 0 : ((obj.skipFrames+1)*obj.ifi) : (( (obj.skipFrames+1)*obj.ifi)*(obj.initialFrozenFrames+obj.movFrameCount-1)) )';
-            frameIdx=[ones(1,obj.initialFrozenFrames) 1:obj.movFrameCount];
+            tFrame=( 0 : ((obj.skipFrames+1)*obj.ifi) : (( (obj.skipFrames+1)*obj.ifi)*(maxFrameCount-1)) )';
+            frameIdx=[ones(1,obj.initialFrozenFrames) 1:max(obj.movFrameCount)];
             
             save tmpVSFile obj; %temporarily save object in case of a crash
             disp('Session starting');
@@ -148,9 +149,12 @@ classdef VS_movie < VStim
                 obj.movTex=[];
             end
         end
-        
+
         function obj=CMloadMovie(obj,srcHandle,eventData,hPanel)
             
+            %clear previous textures
+            obj.cleanUp;
+
             for n=1:obj.nVideos
                 [obj.movieFileName, obj.movPathName] = uigetfile('*.*','Choose movie files or series of images named *_F001-*_FXXX','MultiSelect','On');
                 if iscell(obj.movieFileName)
@@ -161,11 +165,11 @@ classdef VS_movie < VStim
                     obj.movieFileName=obj.movieFileName(order);
                 end
                 
-                obj.calculateVideoTextures;
+                obj.calculateVideoTextures(n);
             end
         end
         
-        function obj=calculateVideoTextures(obj,event,metaProp)
+        function obj=calculateVideoTextures(obj,n,event,metaProp)
             disp(['preparing textures with rotation ' num2str(obj.rotation) ' !!!!']);
             if iscell(obj.movieFileName)
                 nFiles=numel(obj.movieFileName);
@@ -174,10 +178,6 @@ classdef VS_movie < VStim
             end
             
             if nFiles>0
-                %clear previous textures
-                if obj.nVideos==1
-                    obj.cleanUp;
-                end
                 
                 if nFiles>1 %single frame mode
                     obj.movFrameCount=nFiles;
@@ -188,13 +188,13 @@ classdef VS_movie < VStim
                         [M,N,l]=size(I);
                         
                         if obj.showOnFullScreen==1
-                            obj.movTex(i,obj.nVideos)=Screen('MakeTexture', obj.PTB_win,I,obj.rotation);
+                            obj.movTex(i,n)=Screen('MakeTexture', obj.PTB_win,I,obj.rotation);
                         elseif N>=M
                             cutPixels=round((N-M)/2);
-                            obj.movTex(i,obj.nVideos)=Screen('MakeTexture', obj.PTB_win,I(:,(cutPixels+1):(end-cutPixels),:),obj.rotation);
+                            obj.movTex(i,n)=Screen('MakeTexture', obj.PTB_win,I(:,(cutPixels+1):(end-cutPixels),:),obj.rotation);
                         else
                             cutPixels=round((M-N)/2);
-                            obj.movTex(i,obj.nVideos)=Screen('MakeTexture', obj.PTB_win,I((cutPixels+1):(end-cutPixels),:,:),obj.rotation);
+                            obj.movTex(i,n)=Screen('MakeTexture', obj.PTB_win,I((cutPixels+1):(end-cutPixels),:,:),obj.rotation);
                         end
                         
                         fprintf('%d ',i);
@@ -208,24 +208,24 @@ classdef VS_movie < VStim
                         vid=read(readerObj);
                         [M,N,l,numF]=size(vid);
                         
-                        obj.movFrameCount=floor(numF./frameRatio);
+                        obj.movFrameCount(n)=floor(numF./frameRatio);
                         disp('Calculating single frame textures:');
-                        for i=1:obj.movFrameCount
+                        for i=1:obj.movFrameCount(n)
                             
                             if obj.showOnFullScreen==1
-                                obj.movTex(i,obj.nVideos)=Screen('MakeTexture', obj.PTB_win,squeeze(vid(:,:,:,ceil(i*frameRatio))),obj.rotation);
+                                obj.movTex(i,n)=Screen('MakeTexture', obj.PTB_win,squeeze(vid(:,:,:,ceil(i*frameRatio))),obj.rotation);
                             elseif N>=M
                                 cutPixels=round((N-M)/2);
-                                obj.movTex(i,obj.nVideos)=Screen('MakeTexture', obj.PTB_win,squeeze(vid(:,(cutPixels+1):(end-cutPixels),:,ceil(i*frameRatio))),obj.rotation);
+                                obj.movTex(i,n)=Screen('MakeTexture', obj.PTB_win,squeeze(vid(:,(cutPixels+1):(end-cutPixels),:,ceil(i*frameRatio))),obj.rotation);
                             else
                                 cutPixels=round((M-N)/2);
-                                obj.movTex(i,obj.nVideos)=Screen('MakeTexture', obj.PTB_win,squeeze(vid(:,:,(cutPixels+1):(end-cutPixels),ceil(i*frameRatio))),obj.rotation);
+                                obj.movTex(i,n)=Screen('MakeTexture', obj.PTB_win,squeeze(vid(:,:,(cutPixels+1):(end-cutPixels),ceil(i*frameRatio))),obj.rotation);
                             end
                              fprintf('%d ',i);
                         end
                         delete(readerObj);
                     else
-                        [obj.movPtr,obj.movDuration,obj.movFps,obj.movWidth,obj.movHeight,obj.movFrameCount,obj.movAspectRatio]=...
+                        [obj.movPtr(n),obj.movDuration(n),obj.movFps(n),obj.movWidth(n),obj.movHeight(n),obj.movFrameCount(n),obj.movAspectRatio(n)]=...
                             Screen('OpenMovie',obj.PTB_win,[obj.movPathName obj.movieFileName]);
                     end
                     
