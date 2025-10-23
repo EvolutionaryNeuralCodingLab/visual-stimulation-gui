@@ -267,7 +267,7 @@ classdef VS_image < VStim
                 end
             end
             
-            disp('Done preparing movie textures');
+            disp('Done preparing image textures');
         end
         
         %class constractor
