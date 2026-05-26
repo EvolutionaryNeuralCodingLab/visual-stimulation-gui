@@ -1,6 +1,6 @@
 function []=visualStimGUI(varargin)
 %% Default params
-simulationMode=false;
+simulationMode=true;
 fprintf('Starting visual stimulation GUI in screen mode (for simulation mode start with visualStimGUI(''simulationMode'',1)\n');
 initialVStim='VS_testStim';
 % PsychImaging('PrepareConfiguration');

@@ -123,18 +123,13 @@ classdef VS_StaticDriftingGrating < VStim
 
             %randomize
 
-            if obj.randomizeAngle
-                randomPermutation=randperm(obj.nTotTrials);
-                obj.angleSequence=obj.angleSequence(:,randomPermutation);
-            end
-            if obj.randomizeTF
-                randomPermutation=randperm(obj.nTotTrials);
-                obj.tfSequence=obj.tfSequence(randomPermutation);
-            end
-            if obj.randomizeSF
-                randomPermutation=randperm(obj.nTotTrials);
-                obj.sfSequence=obj.sfSequence(:,randomPermutation);
-            end
+             %randomize
+             if obj.randomizeTF
+                 obj.order=randperm(obj.nTotTrials);
+                 obj.angleSequence=obj.angleSequence(:,obj.order);
+                 obj.tfSequence=obj.tfSequence(obj.order);
+                 obj.sfSequence=obj.sfSequence(:,obj.order);
+             end
 
             
             % Compute increment of phase shift per redraw:
